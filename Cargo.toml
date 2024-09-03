@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["a2a_core"]
+
+[workspace.dependencies]
+
+
+#[profile.release]
+#lto = true
