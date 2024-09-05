@@ -1,14 +1,18 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use a2a_types::Action;
+use anyhow::Result;
+use file::do_file_action;
+use http::do_http_action;
+use serde_json::Value;
+use sql::do_sql_action;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+mod file;
+mod http;
+mod sql;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub async fn do_action(action: Action) -> Result<Value> {
+  match action {
+    Action::Http(a) => do_http_action(a).await.map(Into::into),
+    Action::File(a) => do_file_action(a).await.map(Into::into),
+    Action::Sql(a) => do_sql_action(a).await.map(Into::into),
+  }
 }
