@@ -1,19 +1,20 @@
 [workspace]
 resolver = "2"
-members = ["a2a", "a2a_core", "a2a_tojson", "a2a_types", "bindings/nodejs"]
+members = ["a2a", "a2a_core", "a2a_quickjs", "a2a_tojson", "a2a_types", "bindings/nodejs"]
 
 [workspace.dependencies]
 serde_json = { version = "1" }
 serde = { version = "1", features = ["derive"] }
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
-reqwest = { version = "0.12", features = ["stream"], default-features = false }
+reqwest = { version = "0.12", features = ["stream", "json"] }
 bytes = { version = "1", features = ["serde"] }
 tracing = "0.1"
 base64-simd = "0.8"
 hex-simd = "0.8"
 serde_yml = "0.0.11"
 thiserror = "1"
+time = "0.3"
 
 [profile.release]
-lto = true
+lto = false

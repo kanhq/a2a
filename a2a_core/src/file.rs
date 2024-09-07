@@ -3,6 +3,7 @@ use std::{collections::HashMap, str::FromStr};
 use a2a_tojson::bytes_to_json;
 use a2a_types::{FileAction, FileActionResult};
 use anyhow::{anyhow, Result};
+use opendal::Scheme;
 use serde_json::json;
 
 fn split_schema_path(full: &str) -> (&str, &str) {
@@ -21,7 +22,7 @@ fn split_schema_path(full: &str) -> (&str, &str) {
 pub async fn do_file_action(action: FileAction) -> Result<FileActionResult> {
   let (schema, path) = split_schema_path(&action.path);
   let scheme = opendal::Scheme::from_str(schema)?;
-  let options = action
+  let mut options = action
     .connection
     .and_then(|c| c.as_object().cloned())
     .map(|m| {
@@ -30,6 +31,12 @@ pub async fn do_file_action(action: FileAction) -> Result<FileActionResult> {
         .collect::<HashMap<_, _>>()
     })
     .unwrap_or_default();
+
+  if let Scheme::Fs = scheme {
+    if !options.contains_key("root") {
+      options.insert("root".to_string(), "/".to_string());
+    }
+  }
 
   let op = opendal::Operator::via_iter(scheme, options)?;
 
@@ -40,13 +47,14 @@ pub async fn do_file_action(action: FileAction) -> Result<FileActionResult> {
       let body = op.read(path).await?.to_bytes();
       let mimetype = action
         .override_result_mimetype
-        .ok_or(mimetype_from_ext(path))
-        .unwrap_or_default();
+        .unwrap_or(mimetype_from_ext(path));
       bytes_to_json(body, mimetype, None)
     }
     "write" => {
-      let body = action.body.to_vec();
-      op.write(path, body).await?;
+      if let Some(body) = action.body {
+        let body = body.to_vec();
+        op.write(path, body).await?;
+      }
       Ok(serde_json::Value::Null)
     }
     "delete" => {

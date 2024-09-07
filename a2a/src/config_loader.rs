@@ -5,6 +5,19 @@ use anyhow::{bail, Result};
 use serde_json::{Map, Value};
 use tracing::{trace, warn};
 
+pub(crate) fn load_conf_dir(conf_dir: &Path) -> Result<Value> {
+  if !conf_dir.exists() {
+    bail!("config directory not found");
+  }
+
+  if conf_dir.is_file() {
+    return load_configs(conf_dir.to_str().unwrap_or_default());
+  } else {
+    let pattern = conf_dir.join("**/*.{json,yaml,ini,env}");
+    load_configs(pattern.to_str().unwrap_or_default())
+  }
+}
+
 pub(crate) fn load_configs(pattern: &str) -> Result<Value> {
   let walker = globwalk::glob(pattern)?;
 

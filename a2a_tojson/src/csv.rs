@@ -1,18 +1,21 @@
 use crate::utils::json_typed;
-use crate::{Value, Result};
-
+use crate::{Result, Value};
 
 pub(crate) fn to_json(input: String, options: Option<&Value>) -> Result<Value> {
-
-  let has_header = options.and_then(|o| o.get("has_header"))
+  let has_header = options
+    .and_then(|o| o.get("has_header"))
     .and_then(|v| v.as_bool())
-    .unwrap_or(false);
-  let delimiter = options.and_then(|o| o.get("delimiter"))
-    .and_then(|v| v.as_str()).and_then(|s| s.as_bytes().first()).and_then(|b| Some(*b))
+    .unwrap_or(true);
+  let delimiter = options
+    .and_then(|o| o.get("delimiter"))
+    .and_then(|v| v.as_str())
+    .and_then(|s| s.as_bytes().first())
+    .and_then(|b| Some(*b))
     .unwrap_or(b',');
-  let as_object = options.and_then(|o| o.get("as_object"))
+  let as_object = options
+    .and_then(|o| o.get("as_object"))
     .and_then(|v| v.as_bool())
-    .unwrap_or(false);
+    .unwrap_or(true);
 
   // no header and as_object is not supported
   let as_object = has_header && as_object;
@@ -24,20 +27,27 @@ pub(crate) fn to_json(input: String, options: Option<&Value>) -> Result<Value> {
 
   if as_object {
     to_json_object(rdr)
-  }else{
+  } else {
     to_json_array(rdr)
   }
 }
 
-
 fn to_json_array(mut rdr: csv::Reader<&[u8]>) -> Result<Value> {
   let mut records = Vec::new();
   if rdr.has_headers() {
-    records.push(Value::Array(rdr.headers()?.iter().map(|s| json_typed(s.to_string())).collect()));
+    records.push(Value::Array(
+      rdr
+        .headers()?
+        .iter()
+        .map(|s| json_typed(s.to_string()))
+        .collect(),
+    ));
   }
   for result in rdr.records() {
     let record = result?;
-    records.push(Value::Array(record.iter().map(|s| json_typed(s.to_string())).collect()));
+    records.push(Value::Array(
+      record.iter().map(|s| json_typed(s.to_string())).collect(),
+    ));
   }
   Ok(Value::Array(records))
 }

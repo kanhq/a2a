@@ -37,7 +37,8 @@ opendal = { version = "0.49", features = [
 tracing.workspace = true
 reqwest.workspace = true
 bytes.workspace = true
-time = "0.3"
+time.workspace = true
+regex = "1"
 
 [dev-dependencies]
 tokio.workspace = true

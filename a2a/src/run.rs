@@ -1,103 +1,92 @@
+use std::collections::HashMap;
+
 use a2a_core::do_action;
 use a2a_types::{Action, Value};
 use anyhow::Result;
-use quick_js::{Arguments, JsValue};
-use serde_json::json;
+use quickjs_rusty::{
+  serde::{from_js, to_js},
+  Arguments, Context, OwnedJsValue, ToOwnedJsValue,
+};
+use tracing::debug;
 
-pub(crate) async fn execute_js(filename: &str, conf: Value) -> Result<Value> {
+use crate::{app_conf::Runner, config_loader::load_conf_dir};
+
+pub(crate) async fn execute(arg: &Runner) -> Result<Value> {
+  let conf = load_conf_dir(&arg.conf_dir)?;
+  let clean_up = arg.clean.clone();
+  execute_js(&arg.file, conf, clean_up).await
+}
+
+pub(crate) async fn execute_js(
+  filename: &str,
+  conf: Value,
+  clean_up: Option<String>,
+) -> Result<Value> {
   let code = std::fs::read_to_string(filename)?;
 
-  let js_ctx = quick_js::Context::builder()
-    .console(log::LogConsole)
-    .build()?;
+  let js_ctx = Context::builder().console(log::LogConsole).build()?;
 
-  js_ctx.set_global("conf", to_js_value(conf))?;
-  js_ctx.add_callback("doAction", do_action_quickjs)?;
+  let ctx = unsafe { js_ctx.context_raw() };
 
-  js_ctx.eval(&code)?;
+  let params = HashMap::<String, OwnedJsValue>::new();
 
-  Ok(Value::Null)
-}
+  let p_config = to_js(ctx, &conf)?;
+  let p_params = params.to_owned(ctx);
 
-fn to_js_value(val: Value) -> JsValue {
-  match val {
-    Value::Null => JsValue::Null,
-    Value::Bool(b) => JsValue::Bool(b),
-    Value::Number(n) => {
-      if n.is_f64() {
-        JsValue::Float(n.as_f64().unwrap_or_default())
-      } else {
-        JsValue::BigInt(n.as_i64().unwrap_or_default().into())
+  let js_do_action = js_ctx.create_callback(do_action_quickjs)?;
+  js_ctx.set_global("doAction", js_do_action)?;
+
+  js_ctx
+    .eval(&code, true)
+    .map_err(|err| anyhow::anyhow!(err.to_string()))?;
+
+  let result = js_ctx
+    .call_function("main", vec![p_config.clone(), p_params.clone()])
+    .map_err(|err| anyhow::anyhow!(err.to_string()));
+
+  if let Some(clean_up) = clean_up {
+    if let Ok(clean_code) = std::fs::read_to_string(clean_up) {
+      js_ctx.set_global("config", p_config.clone())?;
+      js_ctx.set_global("params", p_params.clone())?;
+      if let Err(err) = js_ctx
+        .eval_module(&clean_code, true)
+        .map_err(|err| anyhow::anyhow!(err.to_string()))
+      {
+        debug!("clean up error: {}", err);
       }
-    }
-    Value::String(s) => JsValue::String(s),
-    Value::Array(arr) => {
-      let mut js_arr = Vec::new();
-      for val in arr {
-        js_arr.push(to_js_value(val));
-      }
-      JsValue::Array(js_arr)
-    }
-    Value::Object(obj) => {
-      let mut js_obj = std::collections::HashMap::new();
-      for (key, val) in obj {
-        js_obj.insert(key, to_js_value(val));
-      }
-      JsValue::Object(js_obj)
     }
   }
+  result.and_then(|r| from_js(ctx, &r).map_err(|err| anyhow::anyhow!(err.to_string())))
 }
 
-fn from_js_value(val: JsValue) -> Value {
-  match val {
-    JsValue::Null => Value::Null,
-    JsValue::Bool(b) => Value::Bool(b),
-    JsValue::Int(n) => Value::Number(n.into()),
-    JsValue::BigInt(n) => json!(n.as_i64().unwrap_or_default()),
-    JsValue::Float(f) => json!(f),
-    JsValue::String(s) => Value::String(s),
-    JsValue::Array(arr) => {
-      let mut js_arr = Vec::new();
-      for val in arr {
-        js_arr.push(from_js_value(val));
-      }
-      Value::Array(js_arr)
-    }
-    JsValue::Object(obj) => {
-      let mut js_obj = serde_json::Map::new();
-      for (key, val) in obj {
-        js_obj.insert(key, from_js_value(val));
-      }
-      Value::Object(js_obj)
-    }
-    _ => Value::Null,
-  }
-}
-
-fn do_action_quickjs(args: Arguments) -> Result<JsValue, String> {
+fn do_action_quickjs(args: Arguments) -> Result<OwnedJsValue, String> {
   let mut args = args.into_vec();
   if args.len() != 1 {
     return Err("action should have only one argument".to_string());
   }
-  let action = from_js_value(args.pop().unwrap());
+  let arg = args.pop().unwrap();
+
+  let action = from_js(arg.context(), &arg).map_err(|err| format!("invalid action: {}", err))?;
 
   let action: Action =
     serde_json::from_value(action).map_err(|err| format!("invalid action: {}", err))?;
 
   //let rt = action_runtime();
-  futures::executor::block_on(async move {
+  let res = futures::executor::block_on(async move {
     let res = do_action(action).await;
     match res {
-      Ok(val) => Ok(to_js_value(val)),
+      Ok(val) => to_js(arg.context(), &val).map_err(|err| err.to_string()),
       Err(err) => Err(err.to_string()),
     }
-  })
+  });
+
+  res
 }
 
 mod log {
-  use quick_js::{
+  use quickjs_rusty::{
     console::{ConsoleBackend, Level},
-    JsValue,
+    OwnedJsValue,
   };
   use tracing::{debug, error, info, trace, warn};
 
@@ -106,44 +95,18 @@ mod log {
   /// Only available with the `log` feature.
   pub struct LogConsole;
 
-  fn print_value(value: JsValue) -> String {
-    match value {
-      JsValue::Undefined => "undefined".to_string(),
-      JsValue::Null => "null".to_string(),
-      JsValue::Bool(v) => v.to_string(),
-      JsValue::Int(v) => v.to_string(),
-      JsValue::Float(v) => v.to_string(),
-      JsValue::String(v) => v,
-      JsValue::Array(values) => {
-        let parts = values
-          .into_iter()
-          .map(print_value)
-          .collect::<Vec<_>>()
-          .join(", ");
-        format!("[{}]", parts)
-      }
-      JsValue::Object(map) => {
-        let parts = map
-          .into_iter()
-          .map(|(key, value)| format!("{}: {}", key, print_value(value)))
-          .collect::<Vec<_>>()
-          .join(", ");
-        format!("{{{}}}", parts)
-      }
-      JsValue::BigInt(v) => v.to_string(),
-      JsValue::__NonExhaustive => unreachable!(),
-    }
-  }
-
   impl ConsoleBackend for LogConsole {
-    fn log(&self, level: Level, values: Vec<JsValue>) {
+    fn log(&self, level: Level, values: Vec<OwnedJsValue>) {
       if values.is_empty() {
         return;
       }
 
       let msg = values
-        .into_iter()
-        .map(print_value)
+        .iter()
+        .map(|v| {
+          v.to_string()
+            .unwrap_or(v.to_json_string(0).unwrap_or_default())
+        })
         .collect::<Vec<_>>()
         .join(" ");
 
