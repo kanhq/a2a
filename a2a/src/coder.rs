@@ -100,12 +100,6 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
       .ok_or(anyhow::anyhow!("invalid conf dir"))?;
     for r in results.iter_mut() {
       if let Some(output) = r.output.as_ref() {
-        info!(
-          provider = r.provider.as_str(),
-          model = r.model.as_str(),
-          output = output.as_str(),
-          "running code"
-        );
         let runner = Runner {
           file: output.clone(),
           conf_dir: conf_dir.clone(),
@@ -117,7 +111,7 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
   }
 
   println!(
-    "{:<20}|{:<20}|{:<10}|{:<10}|{:<10}|{:<10}|{:<10}|{:<12}|{:<10}",
+    "{:<20}\t{:<20}\t{:<10}\t{:<10}\t{:<10}\t{:<10}\t{:<10}\t{:<12}\t{:<10}",
     "provider",
     "model",
     "first_time",
@@ -130,7 +124,7 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
   );
   results.iter().for_each(|r| {
     println!(
-      "{:<20}|{:<20}|{:<10}|{:<10}|{:<10}|{:<10}|{:<10.2}|{:<12.2}|{:<10}",
+      "{:<20}\t{:<20}\t{:<10}\t{:<10}\t{:<10}\t{:<10}\t{:<10.2}\t{:<12.2}\t{:<10}",
       r.provider,
       r.model,
       r.first_token_time,
@@ -139,7 +133,7 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
       r.response_tokens,
       ((r.prompt_tokens * 1000) as f64) / (r.first_token_time as f64),
       ((r.response_tokens * 1000) as f64) / ((r.total_time - r.first_token_time) as f64),
-      r.run_result.is_some(),
+      r.run_result.as_ref().map(|_v| 1).unwrap_or(0),
     );
   });
 
@@ -269,6 +263,7 @@ async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
   code.total_time = (end_time - start_time).whole_milliseconds() as u64;
 
   if let Some(output) = code.output.as_ref() {
+    debug!(output, "llm response");
     std::fs::write(output, extract_code(&llm_response))?;
   }
 

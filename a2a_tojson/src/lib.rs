@@ -17,6 +17,7 @@
 //! ## YAML
 //! - mime type: text/yaml | application/yaml | application/x-yaml
 //!
+mod config_loader;
 mod csv;
 mod data_bytes;
 mod ini;
@@ -27,6 +28,8 @@ mod yaml;
 use anyhow::Result;
 use serde_json::{json, Value};
 use utils::json_typed;
+
+pub use config_loader::load_conf_dir;
 
 /// convert any supported format to json
 ///

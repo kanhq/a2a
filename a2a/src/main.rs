@@ -9,10 +9,7 @@ mod config_loader;
 mod run;
 
 fn setup_logging() {
-  let filter = EnvFilter::from_default_env()
-    .add_directive("a2a=trace".parse().unwrap())
-    .add_directive("a2a_execute=trace".parse().unwrap())
-    .add_directive("a2a_render=trace".parse().unwrap());
+  let filter = EnvFilter::from_default_env();
   tracing_subscriber::fmt()
     .with_env_filter(filter)
     .with_level(true)
@@ -33,8 +30,8 @@ async fn main() -> Result<()> {
       coder::execute(coder).await?;
     }
     Commands::Run(ref runner) => match run::execute(runner).await {
-      Ok(val) => info!("{}", serde_json::to_string_pretty(&val)?),
-      Err(err) => warn!("{}", err),
+      Ok(val) => info!("run {}", serde_json::to_string_pretty(&val)?),
+      Err(err) => warn!("run {}", err),
     },
   }
 

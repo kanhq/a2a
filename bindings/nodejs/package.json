@@ -45,8 +45,8 @@
   "scripts": {
     "artifacts": "napi artifacts",
     "bench": "bun --import @swc-node/register/esm-register benchmark/bench.ts",
-    "build": "napi build --platform --release",
-    "build:debug": "napi build --platform",
+    "build": "napi build --platform --release --js a2a.js --dts a2a.d.ts",
+    "build:debug": "napi build --platform --js a2a.js --dts a2a.d.ts",
     "format": "run-p format:prettier format:rs format:toml",
     "format:prettier": "prettier . -w",
     "format:toml": "taplo format",

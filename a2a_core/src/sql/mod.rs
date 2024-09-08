@@ -38,6 +38,9 @@ fn array_dim(value: Option<&Value>) -> usize {
   }
   match value.unwrap() {
     Value::Array(a) => {
+      if a.is_empty() {
+        return 0;
+      }
       let a = a.iter().all(|aa| aa.is_array());
       if a {
         2

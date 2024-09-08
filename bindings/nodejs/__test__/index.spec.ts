@@ -1,4 +1,4 @@
-import { doAction } from '../index'
+import { a2a, doAction } from '../index'
 import { expect, test } from "bun:test";
 
 
@@ -57,4 +57,13 @@ test('sync function from native code', async () => {
     const result = await doAction(sqlAction)
     console.log(result)
   }
+})
+
+
+test('a2a', async () => {
+
+  const confDir = './__test__/conf'
+  const codeFile = './__test__/code/case01.azure-openai.gpt-4o-mini.js'
+  const result = await a2a(confDir, codeFile, {})
+  console.log(result)
 })

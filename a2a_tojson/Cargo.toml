@@ -15,3 +15,5 @@ serde_yml = { workspace = true }
 a2a_types = { path = "../a2a_types" }
 base64-simd.workspace = true
 bytes.workspace = true
+tracing.workspace = true
+globwalk = "0.9"

@@ -85,9 +85,9 @@ pub fn app_conf() -> &'static AppConf {
           .model
           .iter()
           .map(|model| {
-            let mut parts = model.splitn(2, ':');
-            let model = parts.next().unwrap_or_default();
+            let mut parts = model.rsplitn(2, ':');
             let provider = parts.next().unwrap_or("openai");
+            let model = parts.next().unwrap_or_default();
             (provider.to_string(), model.to_string())
           })
           .collect();

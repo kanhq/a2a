@@ -7,13 +7,14 @@ use quickjs_rusty::{
   serde::{from_js, to_js},
   Arguments, Context, OwnedJsValue, ToOwnedJsValue,
 };
-use tracing::debug;
+use tracing::{debug, info};
 
 use crate::{app_conf::Runner, config_loader::load_conf_dir};
 
 pub(crate) async fn execute(arg: &Runner) -> Result<Value> {
   let conf = load_conf_dir(&arg.conf_dir)?;
   let clean_up = arg.clean.clone();
+  info!(script=%arg.file, "execute script");
   execute_js(&arg.file, conf, clean_up).await
 }
 
@@ -37,7 +38,7 @@ pub(crate) async fn execute_js(
   js_ctx.set_global("doAction", js_do_action)?;
 
   js_ctx
-    .eval(&code, true)
+    .eval(&code, false)
     .map_err(|err| anyhow::anyhow!(err.to_string()))?;
 
   let result = js_ctx

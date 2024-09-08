@@ -1,0 +1,7 @@
+{
+  "pgsql": "postgresql://jia:lijia@127.0.0.1:5432/kaccount?sslmode=disable",
+  "mysql": "mysql://lijia:123456@127.0.0.1:3306/lijia",
+  "sqlite": "sqlite://a2a_test.sqlite3",
+  "dbconn": "postgresql://jia:lijia@127.0.0.1:5432/kaccount?sslmode=disable",
+  "datasrc": "/home/jia/repo/a2a-rs/a2a/test_scripts/data.csv"
+}

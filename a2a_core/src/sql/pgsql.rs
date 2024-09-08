@@ -6,12 +6,10 @@ use sqlx::{
   postgres::{PgArguments, PgRow},
   Arguments, Column, Connection, PgConnection, Row, TypeInfo,
 };
-use tracing::debug;
 
 use super::array_dim;
 
 pub(crate) async fn do_sql_action(action: SqlAction) -> Result<SqlActionResult> {
-  debug!(?action, "do_sql_action");
   let mut conn = PgConnection::connect(&action.connection).await?;
   let sql = &mysql_syntax_to_pgsql(&action.query);
   match array_dim(action.rows.as_ref()) {
