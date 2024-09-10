@@ -1,6 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["a2a", "a2a_core", "a2a_quickjs", "a2a_tojson", "a2a_types", "bindings/nodejs"]
+members = [
+  "a2a",
+  "a2a_core",
+  "a2a_tojson",
+  "a2a_types",
+  "bindings/nodejs",
+  "bindings/python",
+]
 
 [workspace.dependencies]
 serde_json = { version = "1" }

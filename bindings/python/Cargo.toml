@@ -1,0 +1,18 @@
+[package]
+name = "a2a_py"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "a2a"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.22", features = ["serde", "extension-module", "anyhow"] }
+a2a_core = { path = "../../a2a_core" }
+a2a_tojson = { path = "../../a2a_tojson" }
+a2a_types = { path = "../../a2a_types" }
+anyhow.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
