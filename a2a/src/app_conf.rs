@@ -47,6 +47,10 @@ pub struct Coder {
   #[clap(short, long)]
   pub system: Option<String>,
 
+  /// no system prompt, only use user prompt
+  #[clap(long, action=ArgAction::SetTrue)]
+  pub no_system: Option<bool>,
+
   /// llm model, can be multiple, with format of model[:provider]
   #[clap(short, long)]
   pub model: Vec<String>,

@@ -18,7 +18,7 @@ fn sql_driver(conn: &str) -> (&'static str, String) {
   }
 }
 
-pub async fn do_sql_action(mut action: SqlAction) -> Result<SqlActionResult> {
+pub async fn do_action(mut action: SqlAction) -> Result<SqlActionResult> {
   let (schema, conn) = sql_driver(&action.connection);
 
   // normalize connection string

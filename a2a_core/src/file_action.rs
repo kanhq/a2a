@@ -19,7 +19,7 @@ fn split_schema_path(full: &str) -> (&str, &str) {
     .unwrap_or(("fs", full))
 }
 
-pub async fn do_file_action(action: FileAction) -> Result<FileActionResult> {
+pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
   let (schema, path) = split_schema_path(&action.path);
   let scheme = opendal::Scheme::from_str(schema)?;
   let mut options = action

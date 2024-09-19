@@ -1,13 +1,26 @@
 use a2a_core::do_action;
-use a2a_types::{Action, SqlAction};
+use a2a_types::{Action, EMailAction, SqlAction, Value};
+use rustls::crypto::aws_lc_rs;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use tracing::info;
+use tracing_subscriber::EnvFilter;
+
+fn setup_logging() {
+  let filter = EnvFilter::from_default_env().add_directive("a2a_core=trace".parse().unwrap());
+  tracing_subscriber::fmt()
+    .with_env_filter(filter)
+    .with_level(true)
+    .with_writer(std::io::stderr)
+    .init();
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 struct TestConfig {
   pgsql: String,
   mysql: String,
   sqlite: String,
+  email: Value,
 }
 
 #[tokio::test]
@@ -73,5 +86,26 @@ async fn test_sql() {
       let result = do_action(action).await.unwrap();
       println!("{}", serde_json::to_string_pretty(&result).unwrap());
     }
+  }
+}
+
+#[tokio::test]
+async fn test_email() {
+  setup_logging();
+  rustls::crypto::CryptoProvider::install_default(aws_lc_rs::default_provider()).unwrap();
+  let conifg_data = include_str!("./config.json");
+
+  let conf = serde_json::from_str::<TestConfig>(conifg_data).unwrap();
+  info!("config: {:?}", conf);
+
+  let action = EMailAction {
+    account: conf.email.clone(),
+    method: "READ".to_string(),
+    ..Default::default()
+  };
+
+  match do_action(Action::EMail(action)).await {
+    Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+    Err(err) => eprintln!("{}", err),
   }
 }

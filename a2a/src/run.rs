@@ -23,7 +23,7 @@ pub(crate) async fn execute_js(
   conf: Value,
   clean_up: Option<String>,
 ) -> Result<Value> {
-  let code = std::fs::read_to_string(filename)?;
+  let code = std::fs::read_to_string(filename)?.replace("export", "");
 
   let js_ctx = Context::builder().console(log::LogConsole).build()?;
 
@@ -38,7 +38,7 @@ pub(crate) async fn execute_js(
   js_ctx.set_global("doAction", js_do_action)?;
 
   js_ctx
-    .eval(&code, false)
+    .eval(&code, true)
     .map_err(|err| anyhow::anyhow!(err.to_string()))?;
 
   let result = js_ctx

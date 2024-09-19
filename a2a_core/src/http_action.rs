@@ -1,7 +1,7 @@
 use a2a_types::{HttpAction, HttpActionResult};
 use anyhow::Result;
 
-pub async fn do_http_action(action: HttpAction) -> Result<HttpActionResult> {
+pub async fn do_action(action: HttpAction) -> Result<HttpActionResult> {
   let mut client = reqwest::Client::builder();
 
   if let Some(proxy) = action.proxy.as_ref() {

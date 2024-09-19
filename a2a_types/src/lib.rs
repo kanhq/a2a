@@ -14,6 +14,8 @@ pub use value_bytes::{is_bytes, json_from_bytes, json_to_bytes};
 pub struct HttpAction {
   // common fields
   pub override_result_mimetype: Option<String>,
+  pub save_point: Option<String>,
+  pub save_point_connection: Option<Value>,
 
   // http fields
   pub method: String,
@@ -36,6 +38,8 @@ pub struct HttpActionResult {
 pub struct FileAction {
   // common fields
   pub override_result_mimetype: Option<String>,
+  pub save_point: Option<String>,
+  pub save_point_connection: Option<Value>,
 
   // file fields
   pub method: String,
@@ -51,6 +55,8 @@ pub type FileActionResult = Value;
 pub struct SqlAction {
   // common fields
   pub override_result_mimetype: Option<String>,
+  pub save_point: Option<String>,
+  pub save_point_connection: Option<Value>,
 
   // sql fields
   pub query: String,
@@ -60,10 +66,34 @@ pub struct SqlAction {
 
 pub type SqlActionResult = Value;
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EMailAction {
+  // common fields
+  pub override_result_mimetype: Option<String>,
+  pub save_point: Option<String>,
+  pub save_point_connection: Option<Value>,
+
+  // email fields
+
+  // method: SEND, RECV, DELETE
+  pub method: String,
+  // account configuration
+  pub account: Value,
+  // folder to use for this request, otherwise use the default folder
+  pub folder: Option<String>,
+  // message to send/delete
+  pub message: Option<Value>,
+}
+
+// EMailActionResult is a array of Message
+pub type EMailActionResult = Value;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Action {
   Http(HttpAction),
   File(FileAction),
   Sql(SqlAction),
+  EMail(EMailAction),
 }

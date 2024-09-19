@@ -44,7 +44,13 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
     .as_ref()
     .map(|s| text_or_file(&s))
     .map(|v| v.0)
-    .unwrap_or(DEFAULT_SYSTEM_PROMPT.to_string());
+    .unwrap_or_else(|| {
+      if arg.no_system.unwrap_or(false) {
+        "You are a helper".to_string()
+      } else {
+        DEFAULT_SYSTEM_PROMPT.to_string()
+      }
+    });
 
   let (user, is_file) = text_or_file(&arg.user);
 
@@ -54,7 +60,7 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
       .rsplit_once('.')
       .map(|(name, _)| format!("{}.{{provider}}.{{model}}.js", name))
   } else {
-    Some("a2a.{{provider}}.{{model}}.js".to_string())
+    None
   };
 
   let mut set = JoinSet::new();
@@ -184,7 +190,7 @@ async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
     "stream_options": {
       "include_usage": true,
     },
-    "max_tokens": 2048,
+    "max_tokens": 4000,
   });
   let url = format!("{}/chat/completions", code.base_url);
   let request = client
@@ -265,6 +271,8 @@ async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
   if let Some(output) = code.output.as_ref() {
     debug!(output, "llm response");
     std::fs::write(output, extract_code(&llm_response))?;
+  } else {
+    println!("{}", &llm_response);
   }
 
   info!(

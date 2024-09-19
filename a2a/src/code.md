@@ -1,6 +1,6 @@
 You are requested to write some javascript code for use's logic based on the API provided below. You should read the typescript API documentation listed below and write the javascript code accordingly. When you are writing the code, you should to following rules:
 
-- You should define a async function `async function main(config, params)` which is the entry point of the code. the function should have two parameters:
+- You should define a async function `export async function main(config, params)` which is the entry point of the code. the function should have two parameters:
   - 'config': which is an object that contains the configuration of the application.
   - 'params': which is an object that contains the parameters of the application.
 - the `main` function should return the result of the last action.
