@@ -1,6 +1,6 @@
 # ChangeLog
 
-## [Unreleased]
+## [v0.1.0] - 2024-09-20
 
 - support actions
   - file: any file read/write operation
