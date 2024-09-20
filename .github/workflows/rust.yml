@@ -14,7 +14,7 @@ jobs:
         with:
           changelog: CHANGELOG.md
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_OF_ME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   upload-assets:
     strategy:
@@ -26,7 +26,7 @@ jobs:
       - name: Checout
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.TOKEN_OF_ME }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           submodules: 'recursive'
       - name: Setup Cache
         uses: actions/cache@v3
@@ -46,4 +46,4 @@ jobs:
           tar: unix
           zip: windows
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_OF_ME }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
