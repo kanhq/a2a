@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: taiki-e/create-gh-release-action@v1
+        with:
+          changelog: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_OF_ME }}
+
+  upload-assets:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checout
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.TOKEN_OF_ME }}
+          submodules: 'recursive'
+      - name: Setup Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build And Upload
+        uses: taiki-e/upload-rust-binary-action@v1
+        with:
+          # (required)
+          bin: msd
+          tar: unix
+          zip: windows
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_OF_ME }}
