@@ -6,7 +6,6 @@ use tracing::debug;
 mod email_action;
 mod file_action;
 mod http_action;
-mod save_point;
 mod sql_action;
 
 pub async fn do_action(action: Action) -> Result<Value> {

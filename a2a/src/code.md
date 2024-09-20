@@ -15,7 +15,7 @@ You are requested to write some javascript code for use's logic based on the API
 the API documentation is as follows, even though it is in typescript, you should write the code in javascript.
 
 ```typescript
-export type ActionKind = "http" | "sql" | "file";
+export type ActionKind = "http" | "sql" | "file" | "email";
 
 /** The base action type, all Action had these fields */
 export type BaseAction = {
@@ -88,6 +88,36 @@ export type File = {
  */
 export type FileResult = any;
 
+/** EMail action */
+export type EMailAction = {
+  /** the action to perform */
+  method: "RECV" | "SEND";
+  /** the email account configuration */
+  account: any;
+  /** the folder when 'RECV' */
+  folder?: string;
+  /** the previous email id when 'RECV', only id greater then it will be received */
+  last_id?: number;
+  /** the email to send when 'SEND' */
+  message?: any;
+};
+
+/** EMail Message */
+export type EMailMessage = {
+  /** the email id */
+  id: number;
+  subject: string;
+  from: string;
+  to: string;
+  date: string;
+  /** the body of the email */
+  body: string;
+  /** each attachment is a local file path */
+  attachments: string[];
+};
+
+type EMailResult = EMailMessage[];
+
 /** do http action
  *
  *
@@ -103,6 +133,7 @@ declare function doAction(action: HttpAction): Promise<HttpResult>;
  * @returns the result of the action, each row is a object with column name as key and column value as value
  */
 declare function doAction(action: SqlAction): Promise<SqlResult>;
+
 /**
  * do file action
  *
@@ -112,7 +143,25 @@ declare function doAction(action: SqlAction): Promise<SqlResult>;
  * - 'text/xml'  : had been parsed to object
  * - 'application/yaml' : had been parsed to object
  * - 'text/csv' : had been parsed to a array of object with column name as key and column value as value
+ * - other mimetype : result is the DataURL of the file content
  *
  */
 declare function doAction(action: FileAction): Promise<FileResult>;
+
+/**
+ * do email action
+ *
+ * @param action the email action to perform
+ * @returns the result of the action, the result had been parsed to object with the following fields:
+ * - 'RECV' : each email is a object with the following fields:
+ *   - 'id' : the email id
+ *   - 'subject' : the email subject
+ *   - 'from' : the email from
+ *   - 'to' : the email to
+ *   - 'date' : the email date
+ *   - 'body' : the email body
+ *   - 'attachments' : the email attachments, each attachment is a local file path
+ * - 'SEND' : the result is empty array
+ */
+declare function doAction(action: EMailAction): Promise<EMailResult>;
 ```

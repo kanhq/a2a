@@ -2,142 +2,61 @@ use std::sync::Arc;
 
 use a2a_types::{EMailAction, EMailActionResult, Value};
 use anyhow::{anyhow, Result};
-use async_trait::async_trait;
 use email::{
   account::config::AccountConfig,
-  backend::{
-    self,
-    context::{BackendContext, BackendContextBuilder},
-    macros::BackendContext,
-    Backend, BackendBuilder,
+  backend::BackendBuilder,
+  envelope::{
+    list::{ListEnvelopes, ListEnvelopesOptions},
+    Id,
   },
-  envelope::list::{ListEnvelopes, ListEnvelopesOptions},
-  imap::{config::ImapConfig, ImapClientBuilder, ImapContextBuilder, ImapContextSync},
-  message::send::smtp,
-  smtp::{config::SmtpConfig, SmtpContextBuilder, SmtpContextSync},
-  AnyResult,
+  imap::ImapContextBuilder,
+  message::peek::PeekMessages,
 };
-use serde::{Deserialize, Serialize};
-use tracing::info;
-
-use crate::save_point::{self, WithSavePoint};
-
-#[derive(Debug, Serialize, Deserialize, Default, Clone)]
-struct EMailConfig {
-  pub smtp: Option<SmtpConfig>,
-  pub imap: Option<ImapConfig>,
-}
-
-#[derive(BackendContext)]
-struct EMailContext {
-  smtp: Option<SmtpContextSync>,
-  imap: Option<ImapContextSync>,
-}
-
-impl AsRef<Option<ImapContextSync>> for EMailContext {
-  fn as_ref(&self) -> &Option<ImapContextSync> {
-    &self.imap
-  }
-}
-
-impl AsRef<Option<SmtpContextSync>> for EMailContext {
-  fn as_ref(&self) -> &Option<SmtpContextSync> {
-    &self.smtp
-  }
-}
-
-#[derive(Clone)]
-struct EMailContextBuilder {
-  smtp: Option<SmtpContextBuilder>,
-  imap: Option<ImapContextBuilder>,
-}
-
-#[async_trait]
-impl BackendContextBuilder for EMailContextBuilder {
-  type Context = EMailContext;
-
-  async fn build(self) -> AnyResult<Self::Context> {
-    let imap = match self.imap {
-      Some(imap) => Some(imap.build().await?),
-      None => None,
-    };
-    let smtp = match self.smtp {
-      Some(smtp) => Some(smtp.build().await?),
-      None => None,
-    };
-    Ok(EMailContext { smtp, imap })
-  }
-}
+use mail_parser::MimeHeaders;
+use serde_json::json;
+use tracing::{debug, info, warn};
 
 pub async fn do_action(action: EMailAction) -> Result<EMailActionResult> {
-  let mut save_point = action.load().await.ok();
-
   let current_folder = action
     .folder
     .as_ref()
     .map(|f| f.as_str())
     .unwrap_or("INBOX");
 
-  let last_id = save_point
-    .as_ref()
-    .and_then(|v| v.pointer("/lastId"))
-    .and_then(|v| v.as_u64())
-    .unwrap_or_default();
   match action.method.as_str().to_uppercase().as_str() {
-    "READ" => match on_read(&action.account, current_folder, last_id).await {
-      Ok((msg, id)) => Ok(msg),
-      Err(e) => Err(e),
-    },
+    "READ" => {
+      on_read(
+        &action.account,
+        current_folder,
+        action.last_id.unwrap_or_default(),
+      )
+      .await
+    }
     _ => Err(anyhow::anyhow!("Invalid method")),
   }
 }
 
-async fn setup_backend(action: &EMailAction) -> Result<Backend<EMailContext>> {
-  let imap_config = action
-    .account
-    .get("imap")
-    .and_then(|v| serde_json::from_value(v.clone()).ok())
-    .map(|c| Arc::new(c));
-
-  let smtp_config = action
-    .account
-    .get("smtp")
-    .and_then(|v| serde_json::from_value(v.clone()).ok())
-    .map(|c| Arc::new(c));
-
-  let account_config = Arc::new(AccountConfig::default());
-
-  println!(
-    "imap: {} smtp:{}",
-    imap_config.is_some(),
-    smtp_config.is_some()
-  );
-
-  let ctx_builder = EMailContextBuilder {
-    smtp: smtp_config.map(|c| SmtpContextBuilder::new(account_config.clone(), c)),
-    imap: imap_config.map(|c| ImapContextBuilder::new(account_config.clone(), c)),
-  };
-
-  let backend_builder = BackendBuilder::new(account_config.clone(), ctx_builder);
-  match backend_builder.build().await {
-    Ok(backend) => Ok(backend),
-    Err(err) => Err(anyhow::anyhow!("Failed to build backend: {:?}", err)),
-  }
-}
-async fn on_read(account: &Value, folder: &str, last_id: u64) -> Result<(Value, u64)> {
+async fn on_read(account: &Value, folder: &str, last_id: u64) -> Result<Value> {
   let account_config = Arc::new(AccountConfig::default());
   let ctx_builder = account
     .get("imap")
-    .ok_or(anyhow!("no imap config found"))
+    .or(Some(account))
+    .ok_or(anyhow!("miss imap config"))
     .and_then(|v| serde_json::from_value(v.clone()).map_err(Into::into))
     .map(|c| Arc::new(c))
     .map(|c| ImapContextBuilder::new(account_config.clone(), c))?;
+
+  let user_email = ctx_builder.imap_config.login.clone();
+  if user_email.is_empty() {
+    return Err(anyhow!("miss user email"));
+  }
 
   let builder = BackendBuilder::new(account_config.clone(), ctx_builder);
   let backend = builder.build().await?;
 
   let mut envelopes = Vec::new();
   let mut page = 0;
+  info!(user_email, folder, last_id, "email check");
   loop {
     let chunk = backend
       .list_envelopes(
@@ -158,7 +77,7 @@ async fn on_read(account: &Value, folder: &str, last_id: u64) -> Result<(Value, 
           .unwrap_or(false)
       });
 
-    info!(
+    debug!(
       should_break,
       page,
       len = chunk.len(),
@@ -178,9 +97,65 @@ async fn on_read(account: &Value, folder: &str, last_id: u64) -> Result<(Value, 
     }
   }
 
-  envelopes.iter().for_each(|e| {
-    info!("EMail received {} {} {:?}", e.id, e.subject, e.date);
-  });
+  let mut mails = Vec::new();
 
-  Ok((Value::Null, 0))
+  let files_dir = std::env::temp_dir().join("a2a_email").join(&user_email);
+
+  if let Err(err) = std::fs::create_dir_all(&files_dir) {
+    warn!(user_email, %err, "create temp dir");
+  }
+
+  info!(user_email, folder, last_id, "email fetch");
+  for envelope in envelopes.iter() {
+    let id = Id::Single(envelope.id.clone().into());
+    debug!(user_email, %id, "fetch message");
+    match backend.peek_messages(folder, &id).await {
+      Ok(msg) => {
+        if let Some(msg) = msg.first() {
+          match msg.parsed() {
+            Ok(parsed) => {
+              let body = parsed
+                .text_bodies()
+                .map(|b| b.text_contents().unwrap_or(""))
+                .collect::<String>();
+              let mut files = Vec::new();
+              for a in parsed.attachments() {
+                if let Some(filename) = a.attachment_name() {
+                  let local_attachment_name = files_dir.join(filename);
+                  debug!(user_email, %id, filename=?local_attachment_name, "email save attachment");
+                  if let Err(err) = std::fs::write(&local_attachment_name, a.contents()) {
+                    warn!(user_email, id=%envelope.id, filename=?local_attachment_name, %err, "email save attachment");
+                    continue;
+                  } else {
+                    files.push(local_attachment_name);
+                  }
+                }
+              }
+              mails.push(json! {
+                {
+                  "id": envelope.id,
+                  "subject": envelope.subject,
+                  "from": envelope.from.addr.clone(),
+                  "to": envelope.to.addr.clone(),
+                  "date": envelope.date.to_string(),
+                  "body": body,
+                  "attachments": files,
+                }
+              });
+            }
+            Err(err) => {
+              warn!(user_email, %id, %err, "email parse message failed");
+            }
+          }
+        } else {
+          warn!(user_email, %id, "email empty message failed");
+        }
+      }
+      Err(err) => {
+        warn!(user_email, %id, %err, "email peek message failed");
+      }
+    }
+  }
+
+  Ok(Value::Array(mails))
 }

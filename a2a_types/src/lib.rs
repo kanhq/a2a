@@ -71,8 +71,6 @@ pub type SqlActionResult = Value;
 pub struct EMailAction {
   // common fields
   pub override_result_mimetype: Option<String>,
-  pub save_point: Option<String>,
-  pub save_point_connection: Option<Value>,
 
   // email fields
 
@@ -84,6 +82,8 @@ pub struct EMailAction {
   pub folder: Option<String>,
   // message to send/delete
   pub message: Option<Value>,
+  // lastId to recv
+  pub last_id: Option<u64>,
 }
 
 // EMailActionResult is a array of Message

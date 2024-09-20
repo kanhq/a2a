@@ -101,6 +101,7 @@ async fn test_email() {
   let action = EMailAction {
     account: conf.email.clone(),
     method: "READ".to_string(),
+    last_id: Some(218),
     ..Default::default()
   };
 

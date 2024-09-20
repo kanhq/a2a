@@ -47,6 +47,7 @@ email-lib = { version = "0.25", features = [
   "oauth2",
   "derive",
 ] }
+mail-parser = "0.9"
 async-trait = "0.1"
 
 [dev-dependencies]
