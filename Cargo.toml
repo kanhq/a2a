@@ -29,4 +29,6 @@ imap-next = { git = "https://github.com/duesee/imap-next" }
 imap-client = { git = "https://github.com/pimalaya/imap-client" }
 
 [profile.release]
-lto = false
+strip = true
+opt-level = "z" # Optimize for size.
+lto = "fat"
