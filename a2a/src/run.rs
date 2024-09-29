@@ -1,11 +1,9 @@
-use std::collections::HashMap;
-
 use a2a_core::do_action;
 use a2a_types::{Action, Value};
 use anyhow::Result;
 use quickjs_rusty::{
   serde::{from_js, to_js},
-  Arguments, Context, OwnedJsValue, ToOwnedJsValue,
+  Arguments, Context, OwnedJsValue,
 };
 use tracing::{debug, info};
 
@@ -15,12 +13,13 @@ pub(crate) async fn execute(arg: &Runner) -> Result<Value> {
   let conf = load_conf_dir(&arg.conf_dir)?;
   let clean_up = arg.clean.clone();
   info!(script=%arg.file, "execute script");
-  execute_js(&arg.file, conf, clean_up).await
+  execute_js(&arg.file, &conf, &Value::Null, clean_up).await
 }
 
 pub(crate) async fn execute_js(
   filename: &str,
-  conf: Value,
+  conf: &Value,
+  params: &Value,
   clean_up: Option<String>,
 ) -> Result<Value> {
   let code = std::fs::read_to_string(filename)?.replace("export", "");
@@ -29,10 +28,8 @@ pub(crate) async fn execute_js(
 
   let ctx = unsafe { js_ctx.context_raw() };
 
-  let params = HashMap::<String, OwnedJsValue>::new();
-
-  let p_config = to_js(ctx, &conf)?;
-  let p_params = params.to_owned(ctx);
+  let p_config = to_js(ctx, conf)?;
+  let p_params = to_js(ctx, params)?;
 
   let js_do_action = js_ctx.create_callback(do_action_quickjs)?;
   js_ctx.set_global("doAction", js_do_action)?;

@@ -15,6 +15,8 @@ pub enum Commands {
   Coder(Coder),
   /// run the code
   Run(Runner),
+  /// serve the code
+  Serve(Serve),
 }
 
 #[derive(Debug, Args)]
@@ -79,6 +81,40 @@ pub struct Coder {
   pub models: Vec<(String, String)>,
 }
 
+#[derive(Debug, Args)]
+pub struct Serve {
+  /// the address to listen
+  #[clap(short, long, default_value = "127.0.0.1:30030")]
+  pub listen: String,
+
+  /// base dir of the server, there are some special sub directories
+  /// - html: all files under this directory will be served as static files
+  /// - api: all js files under this directory will be served as api
+  /// - conf: all config files under this directory will be loaded
+  /// - scheduler: the scheduler config file, task will be scheduled execution
+  #[clap(short, long, default_value = ".")]
+  pub root: Option<String>,
+
+  /// the service path of admin api
+  #[clap(long, default_value = "/admin")]
+  pub admin_path: Option<String>,
+
+  #[clap(skip)]
+  pub conf_dir_path: PathBuf,
+
+  #[clap(skip)]
+  pub api_root_path: PathBuf,
+
+  #[clap(skip)]
+  pub html_root_path: PathBuf,
+
+  #[clap(skip)]
+  pub scheduler_path: PathBuf,
+
+  #[clap(skip)]
+  pub root_path: PathBuf,
+}
+
 pub fn app_conf() -> &'static AppConf {
   static APP_CONF: OnceLock<AppConf> = OnceLock::new();
   APP_CONF.get_or_init(|| {
@@ -98,6 +134,19 @@ pub fn app_conf() -> &'static AppConf {
       }
       Commands::Run(ref mut runner) => {
         runner.conf_dir = runner.conf_dir.canonicalize().unwrap_or_default();
+      }
+      Commands::Serve(ref mut serve) => {
+        serve.root_path = serve
+          .root
+          .as_ref()
+          .ok_or(anyhow::anyhow!("root is required"))
+          .and_then(|p| PathBuf::from(p).canonicalize().map_err(|e| e.into()))
+          .unwrap();
+
+        serve.conf_dir_path = serve.root_path.join("conf");
+        serve.api_root_path = serve.root_path.join("api");
+        serve.html_root_path = serve.root_path.join("html");
+        serve.scheduler_path = serve.root_path.join("scheduler");
       }
     }
     app

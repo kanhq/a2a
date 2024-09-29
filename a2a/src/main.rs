@@ -7,6 +7,7 @@ mod app_conf;
 mod coder;
 mod config_loader;
 mod run;
+mod serve;
 
 fn setup_logging() {
   let filter = EnvFilter::from_default_env();
@@ -33,6 +34,9 @@ async fn main() -> Result<()> {
       Ok(val) => info!("run {}", serde_json::to_string_pretty(&val)?),
       Err(err) => warn!("run {}", err),
     },
+    Commands::Serve(ref serve) => {
+      serve::execute(serve).await?;
+    }
   }
 
   Ok(())
