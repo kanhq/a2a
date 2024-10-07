@@ -2,6 +2,7 @@ use std::{collections::HashMap, fs, path::PathBuf};
 
 use anyhow::Result;
 use croner::Cron;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use tokio::{sync::mpsc, time::Duration};
 use tracing::{debug, info};
@@ -80,7 +81,7 @@ type ScheduleAdminReceiver = mpsc::Receiver<ScheduleEvent>;
 
 pub(crate) async fn start(schedule_file: PathBuf) -> Result<ScheduleAdminSender> {
   let (sender, recv) = mpsc::channel(1024);
-  let mut states = HashMap::new();
+  let mut states = IndexMap::new();
   let schedules = fs::read_to_string(schedule_file)?;
   let schedules = serde_json::from_str::<Vec<ScheduledTask>>(&schedules)?;
 
@@ -92,6 +93,7 @@ pub(crate) async fn start(schedule_file: PathBuf) -> Result<ScheduleAdminSender>
     debug!("task {} started", task.name);
     tokio::spawn(run_cron(task, task_recv));
   }
+  states.sort_unstable_keys();
 
   tokio::spawn(run_manager(states, recv));
 
@@ -131,8 +133,34 @@ async fn run_cron(task: ScheduledTask, mut event_recv: ScheduleAdminReceiver) {
   }
 }
 
+async fn invoke_matched(
+  states: &IndexMap<String, ScheduleAdminSender>,
+  name: &String,
+  event: ScheduleEvent,
+) {
+  if name.ends_with('*') {
+    // prefix match
+    let prefix = name.trim_end_matches('*').to_string();
+    let first = match states.binary_search_keys(&prefix) {
+      Ok(i) => i,
+      Err(i) => i,
+    };
+    for (name, sender) in states.iter().skip(first) {
+      if name.starts_with(&prefix) {
+        sender.send(event.clone()).await.ok();
+      } else {
+        break;
+      }
+    }
+  } else {
+    if let Some(sender) = states.get(name) {
+      sender.send(event).await.ok();
+    }
+  }
+}
+
 async fn run_manager(
-  states: HashMap<String, ScheduleAdminSender>,
+  states: IndexMap<String, ScheduleAdminSender>,
   mut recv: ScheduleAdminReceiver,
 ) {
   loop {
@@ -142,14 +170,10 @@ async fn run_manager(
         break;
       }
       Some(ScheduleEvent::Pause(name)) => {
-        if let Some(sender) = states.get(&name) {
-          sender.send(ScheduleEvent::Pause(name)).await.ok();
-        }
+        invoke_matched(&states, &name, ScheduleEvent::Pause(name.clone())).await;
       }
       Some(ScheduleEvent::Resume(name)) => {
-        if let Some(sender) = states.get(&name) {
-          sender.send(ScheduleEvent::Resume(name)).await.ok();
-        }
+        invoke_matched(&states, &name, ScheduleEvent::Resume(name.clone())).await;
       }
       Some(ScheduleEvent::Stop(name)) => {
         if let Some(sender) = states.get(&name) {
