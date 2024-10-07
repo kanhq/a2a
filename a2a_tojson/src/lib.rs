@@ -16,10 +16,17 @@
 //! - mime type: text/ini
 //! ## YAML
 //! - mime type: text/yaml | application/yaml | application/x-yaml
+//! ## EXCEL
+//! - mime type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | application/vnd.ms-excel
+//! - options:
+//!   - has_header: bool, default true, if true, first row will be used as header
+//!   - headers: array of string, if provided, will be used as header
+//!   - sheet: string, default "Sheet1", sheet name to be used
 //!
 mod config_loader;
 mod csv;
 mod data_bytes;
+mod excel;
 mod ini;
 mod ndjson;
 mod utils;
@@ -43,6 +50,8 @@ pub fn to_json<S: AsRef<str>>(input: String, mimetype: S, conf: Option<&Value>) 
     "application/ndjson" => ndjson::to_json(input, conf),
     "text/ini" => ini::to_json(input, conf),
     "text/yaml" | "application/yaml" | "application/x-yaml" => yaml::to_json(input, conf),
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    | "application/vnd.ms-excel" => excel::to_json(input, conf),
     _ => Ok(Value::String(input)),
   }
 }
@@ -55,10 +64,16 @@ pub fn bytes_to_json<S: AsRef<str>>(
   let mimetype = mimetype.as_ref();
   match mimetype {
     // pass all text based mime type to to_json
-    "text/csv" | "application/json" | "application/ndjson" | "text/ini" | "text/yaml"
-    | "plain/text" | "application/yaml" | "application/x-yaml" => {
-      to_json(String::from_utf8(input.into())?, mimetype, conf)
-    }
+    "text/csv"
+    | "application/json"
+    | "application/ndjson"
+    | "text/ini"
+    | "text/yaml"
+    | "plain/text"
+    | "application/yaml"
+    | "application/x-yaml"
+    | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    | "application/vnd.ms-excel" => to_json(String::from_utf8(input.into())?, mimetype, conf),
     // else convert to bytes
     _ => {
       let conf = json!({
