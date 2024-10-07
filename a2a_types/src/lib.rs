@@ -89,6 +89,21 @@ pub struct EMailAction {
 // EMailActionResult is a array of Message
 pub type EMailActionResult = Value;
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ShellAction {
+  // common fields
+  pub override_result_mimetype: Option<String>,
+
+  // shell fields
+  pub command: String,
+  pub args: Option<Vec<String>>,
+  pub env: Option<HashMap<String, String>>,
+  pub cwd: Option<String>,
+}
+
+pub type ShellActionResult = Value;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Action {
@@ -96,4 +111,5 @@ pub enum Action {
   File(FileAction),
   Sql(SqlAction),
   EMail(EMailAction),
+  Shell(ShellAction),
 }
