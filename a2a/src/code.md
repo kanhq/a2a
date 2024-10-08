@@ -15,7 +15,7 @@ You are requested to write some javascript code for use's logic based on the API
 the API documentation is as follows, even though it is in typescript, you should write the code in javascript.
 
 ```typescript
-export type ActionKind = "http" | "sql" | "file" | "email";
+export type ActionKind = "http" | "sql" | "file" | "email" | "shell";
 
 /** The base action type, all Action had these fields */
 export type BaseAction = {
@@ -80,6 +80,16 @@ export type File = {
   path: string;
   /** the content to write or append */
   body?: any;
+  options?: {
+    /** for excel/csv, whether the first row is header name */
+    hasHeader?: boolean;
+    /** for excel/csv, the column name of the file */
+    headers?: string[];
+    /** for csv, the delimiter of the file */
+    delimiter?: string;
+    /** for excel, the sheet name */
+    sheet?: string;
+  };
 } & BaseAction;
 
 /** File action result
@@ -118,6 +128,20 @@ export type EMailMessage = {
 
 type EMailResult = EMailMessage[];
 
+/** Shell action */
+export type ShellAction = {
+  /** the shell command to execute */
+  command: string;
+  /** the arguments of the command */
+  args?: string[];
+  /** the working directory of the command */
+  cwd?: string;
+  /** the environment variables of the command */
+  env?: Record<string, string>;
+} & BaseAction;
+
+type ShellResult = string;
+
 /** do http action
  *
  *
@@ -143,6 +167,7 @@ declare function doAction(action: SqlAction): Promise<SqlResult>;
  * - 'text/xml'  : had been parsed to object
  * - 'application/yaml' : had been parsed to object
  * - 'text/csv' : had been parsed to a array of object with column name as key and column value as value
+ * - 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : had been parsed to a array of object with column name as key and column value as value
  * - other mimetype : result is the DataURL of the file content
  *
  */
@@ -164,4 +189,12 @@ declare function doAction(action: FileAction): Promise<FileResult>;
  * - 'SEND' : the result is empty array
  */
 declare function doAction(action: EMailAction): Promise<EMailResult>;
+
+/**
+ * do shell action
+ *
+ * @param action the shell action to perform
+ * @returns the result of the action, the result is the stdout of the command
+ */
+declare function doAction(action: ShellAction): Promise<ShellResult>;
 ```

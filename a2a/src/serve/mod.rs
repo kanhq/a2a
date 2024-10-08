@@ -19,8 +19,11 @@ struct AppState {
 
 pub(crate) async fn execute(arg: &Serve) -> Result<()> {
   let conf = load_conf_dir(&arg.conf_dir_path)?;
-  let scheduler_admin =
-    tokio::spawn(scheduler::start(arg.scheduler_path.join("config.json"))).await??;
+  let scheduler_admin = tokio::spawn(scheduler::start(
+    arg.scheduler_path.join("config.json"),
+    conf.clone(),
+  ))
+  .await??;
   let state = Arc::new(AppState {
     conf,
     api_root_path: arg.api_root_path.clone(),
