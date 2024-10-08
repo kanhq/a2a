@@ -14,8 +14,6 @@ pub use value_bytes::{is_bytes, json_from_bytes, json_to_bytes};
 pub struct HttpAction {
   // common fields
   pub override_result_mimetype: Option<String>,
-  pub save_point: Option<String>,
-  pub save_point_connection: Option<Value>,
 
   // http fields
   pub method: String,
@@ -38,14 +36,14 @@ pub struct HttpActionResult {
 pub struct FileAction {
   // common fields
   pub override_result_mimetype: Option<String>,
-  pub save_point: Option<String>,
-  pub save_point_connection: Option<Value>,
 
   // file fields
   pub method: String,
   pub path: String,
   pub body: Option<Bytes>,
   pub connection: Option<Value>,
+  // read options
+  pub options: Option<Value>,
 }
 
 pub type FileActionResult = Value;
@@ -55,8 +53,6 @@ pub type FileActionResult = Value;
 pub struct SqlAction {
   // common fields
   pub override_result_mimetype: Option<String>,
-  pub save_point: Option<String>,
-  pub save_point_connection: Option<Value>,
 
   // sql fields
   pub query: String,

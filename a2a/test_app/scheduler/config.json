@@ -4,6 +4,11 @@
     "crons": [
       "*/5 * * * * *"
     ],
-    "task": "echo"
+    "command": "ls",
+    "args": [
+      "-la",
+      "."
+    ],
+    "cwd": "/home/jia"
   }
 ]

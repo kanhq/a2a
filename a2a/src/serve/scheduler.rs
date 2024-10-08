@@ -1,11 +1,15 @@
-use std::{fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf, process::Stdio};
 
+use a2a_types::Value;
 use anyhow::Result;
 use croner::Cron;
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tokio::{sync::mpsc, time::Duration};
 use tracing::{debug, info};
+
+use crate::run::execute_js;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScheduledTask {
@@ -15,7 +19,15 @@ pub struct ScheduledTask {
     deserialize_with = "deserialize_cron"
   )]
   pub crons: Vec<Cron>,
-  pub task: String,
+  pub command: String,
+  pub args: Option<Vec<String>>,
+  pub env: Option<HashMap<String, String>>,
+  pub cwd: Option<String>,
+
+  #[serde(skip)]
+  pub conf: Value,
+  #[serde(skip)]
+  pub params: Value,
 }
 
 fn serialize_cron<S>(crons: &Vec<Cron>, s: S) -> Result<S::Ok, S::Error>
@@ -63,6 +75,57 @@ impl ScheduledTask {
         }
       })
   }
+
+  pub async fn run(&self) -> Result<()> {
+    if self.command.ends_with("a2a.js") {
+      self.run_a2a().await
+    } else {
+      self.run_shell().await
+    }
+  }
+
+  pub fn build_params(&mut self) {
+    let mut params = serde_json::Map::new();
+    if let Some(args) = &self.args {
+      args
+        .iter()
+        .filter_map(|arg| arg.split_once('='))
+        .for_each(|(k, v)| {
+          params.insert(k.to_string(), json!(v));
+        });
+    }
+    if let Some(env) = &self.env {
+      env.iter().for_each(|(k, v)| {
+        params.insert(k.to_string(), json!(v));
+      });
+    }
+    self.params = Value::Object(params);
+  }
+
+  async fn run_a2a(&self) -> Result<()> {
+    let _ = execute_js(&self.command, &self.conf, &self.params, None).await?;
+    Ok(())
+  }
+
+  async fn run_shell(&self) -> Result<()> {
+    let mut cmd = tokio::process::Command::new(&self.command);
+    if let Some(args) = &self.args {
+      cmd.args(args);
+    }
+    if let Some(env) = &self.env {
+      cmd.envs(env);
+    }
+    if let Some(cwd) = &self.cwd {
+      cmd.current_dir(cwd);
+    }
+    cmd.stdout(Stdio::null());
+    let status = cmd.status().await?;
+    if status.success() {
+      Ok(())
+    } else {
+      Err(anyhow::anyhow!("task {} failed", self.name))
+    }
+  }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,11 +142,15 @@ pub enum ScheduleEvent {
 pub type ScheduleAdminSender = mpsc::Sender<ScheduleEvent>;
 type ScheduleAdminReceiver = mpsc::Receiver<ScheduleEvent>;
 
-pub(crate) async fn start(schedule_file: PathBuf) -> Result<ScheduleAdminSender> {
+pub(crate) async fn start(schedule_file: PathBuf, conf: Value) -> Result<ScheduleAdminSender> {
   let (sender, recv) = mpsc::channel(1024);
   let mut states = IndexMap::new();
   let schedules = fs::read_to_string(schedule_file)?;
-  let schedules = serde_json::from_str::<Vec<ScheduledTask>>(&schedules)?;
+  let mut schedules = serde_json::from_str::<Vec<ScheduledTask>>(&schedules)?;
+  schedules.iter_mut().for_each(|task| {
+    task.conf = conf.clone();
+    task.build_params();
+  });
 
   //debug!("schedules: {:?}", schedules);
 
@@ -107,15 +174,18 @@ async fn run_cron(task: ScheduledTask, mut event_recv: ScheduleAdminReceiver) {
   loop {
     tokio::select! {
       _ = timer_recv.recv() => {
+        if !paused {
+          debug!("task {} run", task.name);
+          match task.run().await {
+            Ok(_) => {}
+            Err(err) => {
+              debug!("task {} error: {:?}", task.name, err);
+            }
+          }
+        }
         let next_duration = task.next().unwrap_or(Duration::from_secs(1));
         let timer_sender = timer_sender.clone();
-        let name = task.name.clone();
         tokio::spawn(async move {
-          if !paused {
-            debug!(name, "run task")
-          }else{
-            debug!(name, "task paused")
-          }
           let _ = tokio::time::sleep(next_duration).await;
           let _ = timer_sender.send(()).await;
         });
