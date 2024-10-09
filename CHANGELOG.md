@@ -1,5 +1,12 @@
 # ChangeLog
 
+## [v0.1.2] - 2024-10-09
+
+### Added
+
+- 'schedule' stop/reload command
+- 'shell' action
+
 ## [v0.1.1] - 2024-09-29
 
 ### Added
