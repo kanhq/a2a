@@ -37,6 +37,9 @@ async fn main() -> Result<()> {
     Commands::Serve(ref serve) => {
       serve::execute(serve).await?;
     }
+    Commands::Scheduler(ref scheduler) => {
+      let _ = serve::test_scheduler(scheduler).await?;
+    }
   }
 
   Ok(())

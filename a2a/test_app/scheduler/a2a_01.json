@@ -1,0 +1,22 @@
+[
+  {
+    "name": "echo1",
+    "crons": [
+      "*/3 * * * * 1-5"
+    ],
+    "command": "echo.js",
+    "env": {
+      "a": "b"
+    }
+  },
+  {
+    "name": "echo2",
+    "crons": [
+      "*/5 * * * * 1-5"
+    ],
+    "command": "echo.js",
+    "env": {
+      "a": "b"
+    }
+  }
+]
