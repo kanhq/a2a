@@ -11,6 +11,8 @@ mod admin;
 mod api;
 mod scheduler;
 
+pub use scheduler::test_scheduler;
+
 struct AppState {
   pub conf: Value,
   pub api_root_path: PathBuf,
@@ -20,7 +22,8 @@ struct AppState {
 pub(crate) async fn execute(arg: &Serve) -> Result<()> {
   let conf = load_conf_dir(&arg.conf_dir_path)?;
   let scheduler_admin = tokio::spawn(scheduler::start(
-    arg.scheduler_path.join("config.json"),
+    arg.api_root_path.clone(),
+    arg.scheduler_path.clone(),
     conf.clone(),
   ))
   .await??;

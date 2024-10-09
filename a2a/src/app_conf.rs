@@ -17,6 +17,8 @@ pub enum Commands {
   Run(Runner),
   /// serve the code
   Serve(Serve),
+  /// schedule the task
+  Scheduler(Scheduler),
 }
 
 #[derive(Debug, Args)]
@@ -115,6 +117,20 @@ pub struct Serve {
   pub root_path: PathBuf,
 }
 
+#[derive(Debug, Args)]
+pub struct Scheduler {
+  /// the config file of the scheduler
+  #[clap(short, long)]
+  pub config: PathBuf,
+  /// the name of the task to be scheduled
+  #[clap(short, long)]
+  pub task: String,
+  #[clap(short, long, default_value = "10")]
+  pub num: Option<usize>,
+  #[clap(short, long)]
+  pub start: Option<String>,
+}
+
 pub fn app_conf() -> &'static AppConf {
   static APP_CONF: OnceLock<AppConf> = OnceLock::new();
   APP_CONF.get_or_init(|| {
@@ -147,6 +163,9 @@ pub fn app_conf() -> &'static AppConf {
         serve.api_root_path = serve.root_path.join("api");
         serve.html_root_path = serve.root_path.join("html");
         serve.scheduler_path = serve.root_path.join("scheduler");
+      }
+      Commands::Scheduler(ref mut scheduler) => {
+        scheduler.config = scheduler.config.canonicalize().unwrap_or_default();
       }
     }
     app
