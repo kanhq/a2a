@@ -133,7 +133,11 @@ impl ScheduledTask {
       Err(err) => Err(anyhow::anyhow!(err)),
       Ok(output) => {
         if output.status.success() {
-          trace!(task = self.name.as_str(), "task success");
+          trace!(
+            task = self.name.as_str(),
+            "task success: {}",
+            String::from_utf8_lossy(&output.stdout)
+          );
           Ok(())
         } else {
           Err(anyhow::anyhow!(String::from_utf8_lossy(&output.stderr)

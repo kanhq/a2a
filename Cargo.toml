@@ -25,8 +25,8 @@ time = "0.3"
 
 
 [patch.crates-io]
-imap-next = { git = "https://github.com/duesee/imap-next" }
-imap-client = { git = "https://github.com/pimalaya/imap-client" }
+# imap-next = { git = "https://github.com/duesee/imap-next" }
+# imap-client = { git = "https://github.com/pimalaya/imap-client" }
 
 [profile.release]
 strip = true
