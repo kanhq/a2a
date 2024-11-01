@@ -15,7 +15,7 @@ You are requested to write some javascript code for use's logic based on the API
 the API documentation is as follows, even though it is in typescript, you should write the code in javascript.
 
 ```typescript
-export type ActionKind = "http" | "sql" | "file" | "email" | "shell";
+export type ActionKind = "http" | "sql" | "file" | "email" | "shell" | "llm";
 
 /** The base action type, all Action had these fields */
 export type BaseAction = {
@@ -142,6 +142,26 @@ export type ShellAction = {
 
 type ShellResult = string;
 
+/** LLM action
+ * this action is used get result from a Large Language Model, like GPT.
+ * your should build a usefully prompt to the LLM by the user want.
+ * when user need generate JSON result, you should set `overrideResultMimeType` to 'application/json' and tell the LLM should generate JSON format result in the system prompt.
+ * when user provide any JSON structure description, you should copy it to the system prompt and let the LLM generate the result based on it.
+ * when user need process image, you should set the `userImage` field to the image, but don't put any image in the `userPrompt` field.
+ */
+export type LlmAction = {
+  /** the connection to the LLM */
+  connection: any;
+  /** the prompt for 'system' role */
+  sysPrompt?: string;
+  /** the prompt for 'user' role */
+  userPrompt?: string;
+  /** the image used in this action */
+  userImage?: string;
+} & BaseAction;
+
+type LLMResult = any;
+
 /** do http action
  *
  *
@@ -197,4 +217,12 @@ declare function doAction(action: EMailAction): Promise<EMailResult>;
  * @returns the result of the action, the result is the stdout of the command
  */
 declare function doAction(action: ShellAction): Promise<ShellResult>;
+
+/**
+ * do llm action
+ *
+ * @param action the shell action to perform
+ * @returns the result of the action, the result is the stdout of the command
+ */
+declare function doAction(action: LlmAction): Promise<LlmResult>;
 ```

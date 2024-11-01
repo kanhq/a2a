@@ -59,6 +59,10 @@ pub struct Coder {
   #[clap(short, long)]
   pub model: Vec<String>,
 
+  /// llm models file, each line is a model, with format of model[:provider]
+  #[clap(short = 'M', long)]
+  pub models_file: Option<String>,
+
   /// llm base url
   #[clap(short, long, env = "OPENAI_BASE_URL")]
   pub base_url: String,
@@ -140,13 +144,25 @@ pub fn app_conf() -> &'static AppConf {
         coder.models = coder
           .model
           .iter()
-          .map(|model| {
-            let mut parts = model.rsplitn(2, ':');
-            let provider = parts.next().unwrap_or("openai");
-            let model = parts.next().unwrap_or_default();
-            (provider.to_string(), model.to_string())
+          .filter_map(|model| {
+            model
+              .rsplit_once(':')
+              .map(|t| (t.1.to_string(), t.0.to_string()))
           })
           .collect();
+        if let Some(file_name) = &coder.models_file {
+          let file = std::fs::read_to_string(file_name).unwrap();
+          coder.models.extend(
+            file
+              .lines()
+              .filter_map(|line| {
+                line
+                  .rsplit_once(':')
+                  .map(|t| (t.1.to_string(), t.0.to_string()))
+              })
+              .collect::<Vec<_>>(),
+          );
+        }
       }
       Commands::Run(ref mut runner) => {
         runner.conf_dir = runner.conf_dir.canonicalize().unwrap_or_default();

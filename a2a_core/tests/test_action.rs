@@ -1,5 +1,5 @@
 use a2a_core::do_action;
-use a2a_types::{Action, EMailAction, SqlAction, Value};
+use a2a_types::{Action, EMailAction, LlmAction, SqlAction, Value};
 use rustls::crypto::aws_lc_rs;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -21,13 +21,14 @@ struct TestConfig {
   mysql: String,
   sqlite: String,
   email: Value,
+  llm: Value,
 }
 
 #[tokio::test]
 async fn test_sql() {
-  let conifg_data = include_str!("./config.json");
+  let config_data = include_str!("./config.json");
 
-  let conf = serde_json::from_str::<TestConfig>(conifg_data).unwrap();
+  let conf = serde_json::from_str::<TestConfig>(config_data).unwrap();
 
   //let connections = vec![conf.pgsql.clone(), conf.mysql.clone(), conf.sqlite.clone()];
   let connections = vec![conf.sqlite.clone()];
@@ -93,9 +94,9 @@ async fn test_sql() {
 async fn test_email() {
   setup_logging();
   rustls::crypto::CryptoProvider::install_default(aws_lc_rs::default_provider()).unwrap();
-  let conifg_data = include_str!("./config.json");
+  let config_data = include_str!("./config.json");
 
-  let conf = serde_json::from_str::<TestConfig>(conifg_data).unwrap();
+  let conf = serde_json::from_str::<TestConfig>(config_data).unwrap();
   info!("config: {:?}", conf);
 
   let action = EMailAction {
@@ -106,6 +107,25 @@ async fn test_email() {
   };
 
   match do_action(Action::EMail(action)).await {
+    Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+    Err(err) => eprintln!("{}", err),
+  }
+}
+
+#[tokio::test]
+async fn test_llm() {
+  setup_logging();
+  let config_data = include_str!("./config.json");
+  let conf = serde_json::from_str::<TestConfig>(config_data).unwrap();
+
+  let action = LlmAction {
+    override_result_mimetype: Some("application/json".to_string()),
+    connection: Some(conf.llm.clone()),
+    user_prompt: Some("Who are you?\n reply with JSON format".to_string()),
+    ..Default::default()
+  };
+
+  match do_action(Action::Llm(action)).await {
     Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
     Err(err) => eprintln!("{}", err),
   }

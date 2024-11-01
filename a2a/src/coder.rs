@@ -270,7 +270,10 @@ async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
 
   if let Some(output) = code.output.as_ref() {
     debug!(output, "llm response");
-    std::fs::write(output, extract_code(&llm_response))?;
+    std::fs::write(
+      output,
+      extract_code(&llm_response, &code.provider, &code.model),
+    )?;
   } else {
     println!("{}", &llm_response);
   }
@@ -284,8 +287,11 @@ async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
   Ok(code)
 }
 
-fn extract_code(resp: &str) -> String {
-  let mut code = String::new();
+fn extract_code(resp: &str, provider: &str, model: &str) -> String {
+  let mut code = format!(
+    "// written by LLM provider: {} model: {}\n",
+    provider, model
+  );
   let mut in_code = false;
   for line in resp.lines() {
     if line.trim().starts_with("```") {

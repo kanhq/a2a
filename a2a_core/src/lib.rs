@@ -6,6 +6,7 @@ use tracing::debug;
 mod email_action;
 mod file_action;
 mod http_action;
+mod llm_action;
 mod shell_action;
 mod sql_action;
 
@@ -17,5 +18,6 @@ pub async fn do_action(action: Action) -> Result<Value> {
     Action::Sql(a) => sql_action::do_action(a).await.map(Into::into),
     Action::EMail(a) => email_action::do_action(a).await.map(Into::into),
     Action::Shell(a) => shell_action::do_action(a).await.map(Into::into),
+    Action::Llm(a) => llm_action::do_action(a).await.map(Into::into),
   }
 }
