@@ -1,5 +1,11 @@
 # ChangeLog
 
+## [v0.1.3] - 2024-11-01
+
+### Added
+
+- 'llm' action, used to invoke a Large Language Model (LLM) service
+
 ## [v0.1.2] - 2024-10-09
 
 ### Added
