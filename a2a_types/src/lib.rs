@@ -100,6 +100,24 @@ pub struct ShellAction {
 
 pub type ShellActionResult = Value;
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmAction {
+  // common fields
+  pub override_result_mimetype: Option<String>,
+
+  // provider
+  pub connection: Option<Value>,
+  // system prompt
+  pub sys_prompt: Option<String>,
+  // user prompt
+  pub user_prompt: Option<String>,
+  // user input image, should be `Data Url` format
+  pub user_image: Option<String>,
+}
+
+pub type LlmActionResult = Value;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Action {
@@ -108,4 +126,5 @@ pub enum Action {
   Sql(SqlAction),
   EMail(EMailAction),
   Shell(ShellAction),
+  Llm(LlmAction),
 }

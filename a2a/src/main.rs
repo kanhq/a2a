@@ -20,7 +20,7 @@ fn setup_logging() {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
-  dotenvy::dotenv().unwrap_or_default();
+  dotenvy::dotenv_override().unwrap_or_default();
 
   setup_logging();
 
