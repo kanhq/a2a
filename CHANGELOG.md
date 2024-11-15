@@ -1,5 +1,11 @@
 # ChangeLog
 
+## [v0.1.4] - 2024-11-15
+
+### Added
+
+- `a2a server` can now exclude specific actions from being served
+
 ## [v0.1.3] - 2024-11-01
 
 ### Added
