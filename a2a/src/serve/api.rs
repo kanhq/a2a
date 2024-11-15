@@ -63,7 +63,7 @@ async fn api_handler(
   };
   let conf = state.conf.clone();
 
-  match crate::run::execute_js(filename, &conf, &params, None).await {
+  match crate::run::execute_js_file(filename, &conf, &params, None).await {
     Ok(val) => (StatusCode::OK, Json(val)),
     Err(err) => {
       debug!("api error: {}", err);

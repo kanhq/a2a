@@ -1,6 +1,7 @@
 use std::{
   path::{Path, PathBuf},
   str::FromStr,
+  task::Poll,
 };
 
 use crate::{
@@ -10,13 +11,17 @@ use crate::{
 
 use a2a_types::Value;
 use anyhow::Result;
-use futures::TryStreamExt;
+use futures::{Stream, TryStreamExt};
+use pin_project_lite::pin_project;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tokio::{io::AsyncBufReadExt, task::JoinSet};
+use tokio::{
+  io::{AsyncBufRead, AsyncBufReadExt, Lines},
+  task::JoinSet,
+};
 use tracing::{debug, info, warn};
 
-const DEFAULT_SYSTEM_PROMPT: &'static str = include_str!("./code.md");
+pub const DEFAULT_SYSTEM_PROMPT: &'static str = include_str!("./code.md");
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct WriteCode {
@@ -165,7 +170,7 @@ struct Usage {
   pub total_tokens: usize,
 }
 
-async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
+pub async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
   info!(
     provider = code.provider.as_str(),
     model = code.model.as_str(),
@@ -285,6 +290,108 @@ async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
   );
 
   Ok(code)
+}
+
+pin_project! {
+
+pub struct LlmStream<R> {
+  #[pin]
+  lines: Lines<R>,
+}
+}
+
+impl<R: AsyncBufRead> Stream for LlmStream<R> {
+  type Item = String;
+
+  fn poll_next(
+    self: std::pin::Pin<&mut Self>,
+    cx: &mut std::task::Context,
+  ) -> Poll<Option<Self::Item>> {
+    let this = self.project();
+    let rd = this.lines;
+    match rd.poll_next_line(cx) {
+      Poll::Ready(Ok(None)) => Poll::Ready(None),
+      Poll::Ready(Ok(Some(line))) => {
+        debug!(?line, "stream line");
+        if line.is_empty() {
+          Poll::Ready(Some("".to_string()))
+        } else {
+          let line = Self::process_line(line);
+          if line.is_none() {
+            Poll::Ready(Some("".to_string()))
+          } else {
+            Poll::Ready(Some(line.unwrap()))
+          }
+        }
+      }
+      Poll::Ready(Err(e)) => Poll::Ready(Some(e.to_string())),
+      Poll::Pending => Poll::Pending,
+    }
+  }
+}
+
+impl<R> LlmStream<R> {
+  fn process_line(line: String) -> Option<String> {
+    let line = line.strip_prefix("data:")?;
+    if let Ok(data) = serde_json::from_str::<Value>(line) {
+      data
+        .pointer("/choices/0/delta/content")
+        .and_then(|c| c.as_str())
+        .map(|c| c.to_string())
+    } else {
+      warn!(?line, "parse stream line failed");
+      None
+    }
+  }
+}
+
+#[allow(dead_code)]
+pub async fn write_code_stream(code: &WriteCode) -> Result<impl Stream<Item = String>> {
+  info!(
+    provider = code.provider.as_str(),
+    model = code.model.as_str(),
+    "writing code start"
+  );
+
+  let client = reqwest::Client::new();
+
+  let llm_body = json!({
+    "model": code.model,
+    "messages": [
+      {
+        "role": "system",
+        "content": code.system
+      },
+      {
+        "role": "user",
+        "content": code.user
+      }
+    ],
+    "stream": true,
+    "stream_options": {
+      "include_usage": true,
+    },
+    "max_tokens": 4000,
+  });
+  let url = format!("{}/chat/completions", code.base_url);
+  let request = client
+    .post(&url)
+    .bearer_auth(&code.api_key)
+    .header("x-portkey-provider", &code.provider)
+    .json(&llm_body)
+    .build()?;
+
+  let response = client.execute(request).await?;
+  // check if the response is successful
+  response.error_for_status_ref()?;
+
+  let stream = response
+    .bytes_stream()
+    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
+
+  let lines = tokio_util::io::StreamReader::new(stream).lines();
+
+  Ok(LlmStream { lines })
 }
 
 fn extract_code(resp: &str, provider: &str, model: &str) -> String {

@@ -9,6 +9,7 @@ mod http_action;
 mod llm_action;
 mod shell_action;
 mod sql_action;
+pub mod utils;
 
 pub async fn do_action(action: Action) -> Result<Value> {
   debug!(?action, "do_action");
