@@ -15,7 +15,14 @@ You are requested to write some javascript code for use's logic based on the API
 the API documentation is as follows, even though it is in typescript, you should write the code in javascript.
 
 ```typescript
-export type ActionKind = "http" | "sql" | "file" | "email" | "shell" | "llm";
+export type ActionKind =
+  | "http"
+  | "sql"
+  | "file"
+  | "email"
+  | "shell"
+  | "llm"
+  | "notify";
 
 /** The base action type, all Action had these fields */
 export type BaseAction = {
@@ -162,6 +169,26 @@ export type LlmAction = {
 
 type LLMResult = any;
 
+/** Notify action
+ *
+ * this action is used to send through the IM service, such as slack, telegram, dingtalk, feishu, wxwork etc.
+ * notify action is used to send through the IM service, such as slack, telegram, dingtalk, feishu, wxwork etc.
+ * usually there is a webhook url used to send the message.
+ * message can be string or object,
+ * when it is object, it should match the format of the IM service.
+ * when it is string, it will be sent as text message type of the IM service, text can be markdown or plain text.
+ */
+export type NotifyAction = {
+  /** the webhook url */
+  url: any;
+  /** the message to be sent */
+  message?: any;
+  /** optional title of this message */
+  title?: string;
+} & BaseAction;
+
+type NotifyResult = any;
+
 /** do http action
  *
  *
@@ -225,4 +252,13 @@ declare function doAction(action: ShellAction): Promise<ShellResult>;
  * @returns the result of the action, the result is the stdout of the command
  */
 declare function doAction(action: LlmAction): Promise<LlmResult>;
+
+/**
+ * do notify action
+ *
+ *
+ * @param action the shell action to perform
+ * @returns the result of the action, the result is the stdout of the command
+ */
+declare function doAction(action: NotifyAction): Promise<NotifyResult>;
 ```
