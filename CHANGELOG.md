@@ -5,6 +5,7 @@
 ### Added
 
 - `a2a server` can now exclude specific actions from being served
+- `notify` action, used to send notifications to a user by IM service
 
 ## [v0.1.3] - 2024-11-01
 

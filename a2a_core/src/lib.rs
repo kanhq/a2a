@@ -7,6 +7,7 @@ mod email_action;
 mod file_action;
 mod http_action;
 mod llm_action;
+mod notify_action;
 mod shell_action;
 mod sql_action;
 pub mod utils;
@@ -20,5 +21,6 @@ pub async fn do_action(action: Action) -> Result<Value> {
     Action::EMail(a) => email_action::do_action(a).await.map(Into::into),
     Action::Shell(a) => shell_action::do_action(a).await.map(Into::into),
     Action::Llm(a) => llm_action::do_action(a).await.map(Into::into),
+    Action::Notify(a) => notify_action::do_action(a).await.map(Into::into),
   }
 }

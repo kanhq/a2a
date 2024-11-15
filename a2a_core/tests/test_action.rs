@@ -1,5 +1,5 @@
 use a2a_core::do_action;
-use a2a_types::{Action, EMailAction, LlmAction, SqlAction, Value};
+use a2a_types::{Action, EMailAction, LlmAction, NotifyAction, SqlAction, Value};
 use rustls::crypto::aws_lc_rs;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -16,12 +16,18 @@ fn setup_logging() {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+struct NotifyConfig {
+  feishu: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 struct TestConfig {
   pgsql: String,
   mysql: String,
   sqlite: String,
   email: Value,
   llm: Value,
+  notify: NotifyConfig,
 }
 
 #[tokio::test]
@@ -126,6 +132,25 @@ async fn test_llm() {
   };
 
   match do_action(Action::Llm(action)).await {
+    Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+    Err(err) => eprintln!("{}", err),
+  }
+}
+
+#[tokio::test]
+async fn test_notify() {
+  setup_logging();
+  let config_data = include_str!("./config.json");
+  let conf = serde_json::from_str::<TestConfig>(config_data).unwrap();
+
+  let action = NotifyAction {
+    url: conf.notify.feishu.clone(),
+    message: json!(" 量化易编 \n **Test Notification**"),
+    title: Some("量化易编".to_string()),
+    ..Default::default()
+  };
+
+  match do_action(Action::Notify(action)).await {
     Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
     Err(err) => eprintln!("{}", err),
   }

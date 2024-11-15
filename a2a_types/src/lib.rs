@@ -118,6 +118,21 @@ pub struct LlmAction {
 
 pub type LlmActionResult = Value;
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct NotifyAction {
+  // common fields
+  pub override_result_mimetype: Option<String>,
+
+  // notify fields
+  pub url: String,
+  // message to send
+  pub message: Value,
+  pub title: Option<String>,
+}
+
+pub type NotifyActionResult = Value;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Action {
@@ -127,4 +142,5 @@ pub enum Action {
   EMail(EMailAction),
   Shell(ShellAction),
   Llm(LlmAction),
+  Notify(NotifyAction),
 }
