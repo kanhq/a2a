@@ -9,7 +9,9 @@ use tracing::info;
 
 mod admin;
 mod api;
+mod run;
 mod scheduler;
+mod writer;
 
 pub use scheduler::test_scheduler;
 
@@ -39,6 +41,9 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
       tower_http::services::ServeDir::new(arg.html_root_path.clone()),
     )
     .route("/api/*file", post(api::post_handler).get(api::get_handler))
+    //.route("/code", post(writer::coder_handle))
+    .route("/run/json", post(run::post_json_handle))
+    .route("/run/form", post(run::post_form_handle))
     .route(admin_path, post(admin::post_handler))
     .with_state(state);
 

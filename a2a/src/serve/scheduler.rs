@@ -14,7 +14,7 @@ use serde_json::json;
 use tokio::{sync::mpsc, time::Duration};
 use tracing::{debug, info, trace, warn};
 
-use crate::run::execute_js;
+use crate::run::execute_js_file;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ScheduledTask {
@@ -113,7 +113,7 @@ impl ScheduledTask {
   }
 
   async fn run_a2a(&self) -> Result<()> {
-    let result = execute_js(&self.command, &self.conf, &self.params, None).await?;
+    let result = execute_js_file(&self.command, &self.conf, &self.params, None).await?;
     debug!(task = self.name, result= ?result, "task success");
     Ok(())
   }

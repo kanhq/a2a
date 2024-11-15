@@ -69,7 +69,7 @@ pub fn bytes_to_json<S: AsRef<str>>(
     | "application/ndjson"
     | "text/ini"
     | "text/yaml"
-    | "plain/text"
+    | "text/plain"
     | "application/yaml"
     | "application/x-yaml"
     | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

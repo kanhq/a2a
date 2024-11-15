@@ -13,16 +13,26 @@ pub(crate) async fn execute(arg: &Runner) -> Result<Value> {
   let conf = load_conf_dir(&arg.conf_dir)?;
   let clean_up = arg.clean.clone();
   info!(script=%arg.file, "execute script");
-  execute_js(&arg.file, &conf, &Value::Null, clean_up).await
+  execute_js_file(&arg.file, &conf, &Value::Null, clean_up).await
 }
-
-pub(crate) async fn execute_js(
+pub(crate) async fn execute_js_file(
   filename: &str,
   conf: &Value,
   params: &Value,
   clean_up: Option<String>,
 ) -> Result<Value> {
-  let code = std::fs::read_to_string(filename)?.replace("export", "");
+  let code = std::fs::read_to_string(filename)?;
+
+  execute_js_code(&code, conf, params, clean_up).await
+}
+
+pub(crate) async fn execute_js_code(
+  code: &str,
+  conf: &Value,
+  params: &Value,
+  clean_up: Option<String>,
+) -> Result<Value> {
+  let code = code.replace("export", "");
 
   let js_ctx = Context::builder().console(log::LogConsole).build()?;
 
