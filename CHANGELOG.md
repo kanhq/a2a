@@ -1,5 +1,13 @@
 # ChangeLog
 
+## [v0.1.5] - 2024-11-26
+
+### Modified
+
+- bytes_to_json now detects the plain text and returns it as a string
+- upgrade pyo3 to 0.23
+- fs now support relative path
+
 ## [v0.1.4] - 2024-11-15
 
 ### Added
