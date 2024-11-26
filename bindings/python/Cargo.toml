@@ -9,7 +9,9 @@ name = "a2a"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.22", features = ["serde", "extension-module", "anyhow"] }
+pyo3 = { version = "0.23", features = ["serde", "extension-module", "anyhow"] }
+pyo3-async-runtimes = { version = "0.23", features = ["tokio-runtime"] }
+
 a2a_core = { path = "../../a2a_core" }
 a2a_tojson = { path = "../../a2a_tojson" }
 a2a_types = { path = "../../a2a_types" }
