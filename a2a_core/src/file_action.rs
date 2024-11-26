@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::HashMap, path, str::FromStr};
 
 use a2a_tojson::bytes_to_json;
 use a2a_types::{FileAction, FileActionResult};
@@ -6,17 +6,21 @@ use anyhow::{anyhow, Result};
 use opendal::Scheme;
 use serde_json::json;
 
-fn split_schema_path(full: &str) -> (&str, &str) {
+fn split_schema_path(full: &str) -> (&str, String) {
   full
     .split_once("://")
     .map(|(schema, path)| {
       if schema.is_empty() || schema.eq("file") {
-        ("fs", path)
+        let p = path::Path::new(path);
+        match p.canonicalize() {
+          Ok(p) => ("fs", p.to_string_lossy().to_string()),
+          Err(_) => ("fs", path.to_string()),
+        }
       } else {
-        (schema, path)
+        (schema, path.to_string())
       }
     })
-    .unwrap_or(("fs", full))
+    .unwrap_or(("fs", full.to_string()))
 }
 
 pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
@@ -34,7 +38,11 @@ pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
 
   if let Scheme::Fs = scheme {
     if !options.contains_key("root") {
-      options.insert("root".to_string(), "/".to_string());
+      if path.starts_with("/") || path.contains(":\\") {
+        options.insert("root".to_string(), "/".to_string());
+      } else {
+        options.insert("root".to_string(), ".".to_string());
+      }
     }
   }
 
@@ -44,25 +52,25 @@ pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
 
   match method.as_str() {
     "read" => {
-      let body = op.read(path).await?.to_bytes();
+      let body = op.read(&path).await?.to_bytes();
       let mimetype = action
         .override_result_mimetype
-        .unwrap_or(mimetype_from_ext(path));
+        .unwrap_or(mimetype_from_ext(&path));
       bytes_to_json(body, mimetype, None)
     }
     "write" => {
       if let Some(body) = action.body {
         let body = body.to_vec();
-        op.write(path, body).await?;
+        op.write(&path, body).await?;
       }
       Ok(serde_json::Value::Null)
     }
     "delete" => {
-      op.delete(path).await?;
+      op.delete(&path).await?;
       Ok(serde_json::Value::Null)
     }
     "list" => {
-      let items = op.list(path).await?;
+      let items = op.list(&path).await?;
 
       let items = items
         .into_iter()
