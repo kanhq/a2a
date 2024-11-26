@@ -1,3 +1,5 @@
+use core::str;
+
 use crate::{FromJsonValue, ToJsonValue};
 use crate::{Result, Value};
 
@@ -5,12 +7,17 @@ const HEX_PREFIX: &str = "data:";
 
 impl ToJsonValue for &[u8] {
   fn to_json(&self, conf: Option<&Value>) -> Result<Value> {
-    let mimetype = conf
-      .and_then(|conf| conf.get("mimetype").and_then(Value::as_str))
-      .unwrap_or("");
-    let mut blob = format!("data:{};base64,", mimetype);
-    base64_simd::STANDARD.encode_append(self, &mut blob);
-    Ok(Value::String(blob))
+    match str::from_utf8(self) {
+      Ok(s) => Ok(Value::String(s.to_string())),
+      Err(_) => {
+        let mimetype = conf
+          .and_then(|conf| conf.get("mimetype").and_then(Value::as_str))
+          .unwrap_or("");
+        let mut blob = format!("data:{};base64,", mimetype);
+        base64_simd::STANDARD.encode_append(self, &mut blob);
+        Ok(Value::String(blob))
+      }
+    }
   }
 }
 
