@@ -155,3 +155,21 @@ async fn test_notify() {
     Err(err) => eprintln!("{}", err),
   }
 }
+
+#[tokio::test]
+async fn test_enc() {
+  setup_logging();
+  let action = a2a_types::EncAction {
+    override_result_mimetype: None,
+    is_dec: Some(false),
+    methods: vec!["sha1prng".to_string()],
+    key: None,
+    padding: None,
+    data: "123456".to_string(),
+  };
+
+  match do_action(Action::Enc(action)).await {
+    Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+    Err(err) => eprintln!("{}", err),
+  }
+}
