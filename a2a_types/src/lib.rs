@@ -133,6 +133,23 @@ pub struct NotifyAction {
 
 pub type NotifyActionResult = Value;
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct EncAction {
+  // common fields
+  pub override_result_mimetype: Option<String>,
+
+  // enc fields
+  /// is_dec: true if the data is decode or encoded
+  pub is_dec: Option<bool>,
+  pub methods: Vec<String>,
+  pub key: Option<String>,
+  pub padding: Option<String>,
+  pub data: String,
+}
+
+pub type EncActionResult = String;
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Action {
@@ -143,4 +160,5 @@ pub enum Action {
   Shell(ShellAction),
   Llm(LlmAction),
   Notify(NotifyAction),
+  Enc(EncAction),
 }
