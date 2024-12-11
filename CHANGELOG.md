@@ -1,5 +1,13 @@
 # ChangeLog
 
+## [v0.1.6] - 2024-12-11
+
+### Add
+
+- `enc` action used to do encoding/encrypt
+
+### Modified
+
 ## [v0.1.5] - 2024-11-26
 
 ### Modified
