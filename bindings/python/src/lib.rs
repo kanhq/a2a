@@ -1,5 +1,3 @@
-use std::sync::OnceLock;
-
 use pyo3::{prelude::*, types::PyDict, wrap_pyfunction};
 use value_to_dict::{value_from_py, value_to_py, ValuePy};
 
@@ -35,12 +33,12 @@ fn a2a(m: &Bound<'_, PyModule>) -> PyResult<()> {
   Ok(())
 }
 
-fn action_runtime() -> &'static tokio::runtime::Runtime {
-  static ACTION_RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
-  ACTION_RUNTIME.get_or_init(|| {
-    tokio::runtime::Builder::new_multi_thread()
-      .enable_all()
-      .build()
-      .expect("Failed to create action runtime")
-  })
-}
+// fn action_runtime() -> &'static tokio::runtime::Runtime {
+//   static ACTION_RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
+//   ACTION_RUNTIME.get_or_init(|| {
+//     tokio::runtime::Builder::new_multi_thread()
+//       .enable_all()
+//       .build()
+//       .expect("Failed to create action runtime")
+//   })
+// }
