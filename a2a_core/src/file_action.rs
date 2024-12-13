@@ -23,7 +23,27 @@ fn split_schema_path(full: &str) -> (&str, String) {
     .unwrap_or(("fs", full.to_string()))
 }
 
+fn read_data_url(data_url: &str) -> Option<FileActionResult> {
+  if !data_url.starts_with("data:") {
+    return None;
+  } 
+
+  let data_url = data_url.trim_start_matches("data:");
+
+  let mut parts = data_url.splitn(2, ',');
+  let (mime, data) = (parts.next()?, parts.next()?);
+  let body = base64_simd::STANDARD.decode_to_vec(data.as_bytes()).ok()?;
+  let mimetype = mime.split(';').next().unwrap_or("text/plain");
+  bytes_to_json(body.into(), mimetype, None).ok()
+}
+
 pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
+  if action.method.eq_ignore_ascii_case("read") {
+    if let Some(value) = read_data_url(&action.path) {
+      return Ok(value);
+    }
+  }
+
   let (schema, path) = split_schema_path(&action.path);
   let scheme = opendal::Scheme::from_str(schema)?;
   let mut options = action
