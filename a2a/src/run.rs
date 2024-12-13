@@ -1,3 +1,5 @@
+use std::sync::{Arc, RwLock};
+
 use a2a_core::do_action;
 use a2a_types::{Action, Value};
 use anyhow::Result;
@@ -34,7 +36,11 @@ pub(crate) async fn execute_js_code(
 ) -> Result<Value> {
   let code = code.replace("export", "");
 
-  let js_ctx = Context::builder().console(log::LogConsole).build()?;
+  let log_lines = Arc::new(RwLock::new(Vec::new()));
+
+  let log_console = log::LogConsole::new_with_lines(log_lines.clone());
+
+  let js_ctx = Context::builder().console(log_console).build()?;
 
   let ctx = unsafe { js_ctx.context_raw() };
 
@@ -64,7 +70,13 @@ pub(crate) async fn execute_js_code(
       }
     }
   }
-  result.and_then(|r| from_js(ctx, &r).map_err(|err| anyhow::anyhow!(err.to_string())))
+  let result: Value= result.and_then(|r| from_js(ctx, &r).map_err(|err| anyhow::anyhow!(err.to_string())))?;
+  let logs = match log_lines.read() {
+    Ok(lines) => lines.clone(),
+    Err(_) => Vec::new(),
+  };
+  let body = serde_json::json!({ "result": result, "logs": logs });
+  Ok(body.into())
 }
 
 fn do_action_quickjs(args: Arguments) -> Result<OwnedJsValue, String> {
@@ -74,8 +86,9 @@ fn do_action_quickjs(args: Arguments) -> Result<OwnedJsValue, String> {
   }
   let arg = args.pop().unwrap();
 
-  let action = from_js(arg.context(), &arg).map_err(|err| format!("invalid action: {}", err))?;
+  let action = from_js(arg.context(), &arg).map_err(|err| format!("invalid js action: {}", err))?;
 
+  debug!(action = ?action, "do action");
   let action: Action =
     serde_json::from_value(action).map_err(|err| format!("invalid action: {}", err))?;
 
@@ -92,7 +105,9 @@ fn do_action_quickjs(args: Arguments) -> Result<OwnedJsValue, String> {
 }
 
 mod log {
-  use quickjs_rusty::{
+  use std::{panic::RefUnwindSafe, sync::{Arc, RwLock}};
+
+use quickjs_rusty::{
     console::{ConsoleBackend, Level},
     OwnedJsValue,
   };
@@ -101,7 +116,22 @@ mod log {
   /// A console implementation that logs messages via the `log` crate.
   ///
   /// Only available with the `log` feature.
-  pub struct LogConsole;
+  pub struct LogConsole {
+    lines: Arc<RwLock<Vec<String>>>,
+    enable_lines: bool,
+  }
+
+  impl LogConsole {
+    pub fn new_with_lines(lines: Arc<RwLock<Vec<String>>>) -> Self {
+      Self {
+        lines,
+        enable_lines: true,
+      }
+    }
+  }
+
+  impl RefUnwindSafe for LogConsole {}
+  
 
   impl ConsoleBackend for LogConsole {
     fn log(&self, level: Level, values: Vec<OwnedJsValue>) {
@@ -126,6 +156,17 @@ mod log {
         Level::Warn => warn!("{}", msg),
         Level::Error => error!("{}", msg),
       };
+
+      if self.enable_lines {
+        self.lines
+          .write()
+          .map(|mut lines| {
+            lines.push(msg);
+          })
+          .unwrap_or_else(|err| {
+            error!("add log error: {}", err);
+          });
+      }
     }
   }
 }
