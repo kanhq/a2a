@@ -11,6 +11,17 @@ pub(crate) fn base64_action(is_enc: bool, input_data: &[u8], _key: Option<&[u8]>
   }
 }
 
+pub(crate) fn base64url_action(is_enc: bool, input_data: &[u8], _key: Option<&[u8]>, _padding: &str) -> Result<Vec<u8>> {
+  let base64 = base64_simd::URL_SAFE_NO_PAD;
+  if is_enc {
+    let out : Vec<u8> = base64.encode_type(input_data);
+    Ok(out)
+  } else {
+     base64.decode_to_vec(input_data).map_err(Into::into)
+  }
+}
+
+
 pub(crate) fn hex_action(is_enc: bool, input_data: &[u8], _key: Option<&[u8]>, _padding: &str) -> Result<Vec<u8>> {
   if is_enc {
     Ok(hex_simd::encode_type(input_data, hex_simd::AsciiCase::Lower))
