@@ -5,7 +5,9 @@ You are requested to write some javascript code for use's logic based on the API
   - 'params': which is an object that contains the parameters of the application.
 - the `main` function should return the result of the last action.
 - You should not use any other libraries, just vanilla javascript.
-- there script will be excute on a custom runtime, there is no `Window` or `Global` object, so you should not call any function provide by that. 
+- Don't use `require` or `import` to include ohter libs.
+- there script will be excute on a custom runtime, there is no `Window`, `Global`, `Buffer` and so on, so you should not use any function provide by that. for example, `btoa`, `atob` etc.
+- base64 encoding/decoding is provided by `doAction` with `EncAction`, use it as needed.  
 - You should use `async/await` for the API calls.
 - Read the comments in the API documentation carefully.
 - All the API results had parsed to a JSON object.
@@ -194,15 +196,16 @@ type NotifyResult = any;
 /**
  * Enc action
  * 
- * this action is used to do crypto/encoding transform
+ * this action is used to do crypto/encoding transform, 
  */
 
 export type EncAction = {
   /** is this action encrypt/encoing or dencrypt/decoding  */
   isDec?: boolean
-  /** chan of transfrom to perform, you are preferred to combine multiple enc task in one action.
+  /** chan of encrypt/encoding to perform, you are preferred to combine multiple enc task in one action.
    * each methed can be one of:
-   * - base64 : base64 encoding/decoding
+   * - base64 : do base64 encoding/decoding
+   * - base64url : do base64 url safe encoding/decoding
    * - hex : hex encoding/decoding
    * - url : url encoding/decoding
    * - md5 : calculate the md5 checksum of data
@@ -218,7 +221,12 @@ export type EncAction = {
   methods: string[]
   /** key used wen do hmac and aes */
   key?: string
-  /** padding method when do AES encrypt/decnrypt */
+  /** padding method when do AES encrypt/decnrypt, can be one of
+   * - zero: padding with zero
+   * - space: padding with space
+   * - pkcs5: padding as pkcs5 method
+   * - pkcs7: padding as pkcs7 method
+   */
   padding?: string
   /** data used to perform */
   data: string
