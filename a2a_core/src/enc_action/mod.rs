@@ -21,6 +21,7 @@ pub(crate) fn do_action(action: EncAction) -> Result<EncActionResult> {
     let method = method.to_lowercase();
     input_data = match method.as_str() {
       "base64" => encode::base64_action(is_enc, &input_data, key, &padding), 
+      "base64url" => encode::base64url_action(is_enc, &input_data, key, &padding), 
       "hex" => encode::hex_action(is_enc, &input_data, key, &padding),
       "url" => encode::url_action(is_enc, &input_data, key, &padding),
       "md5" => hash::md5_action(is_enc, &input_data, key, &padding),

@@ -8,7 +8,7 @@ pub(crate) fn md5_action(is_enc: bool, input_data: &[u8], _key: Option<&[u8]>, _
     let mut h = Md5::new();
     h.update(input_data);
     let r = h.finalize();
-    Ok(hex_simd::encode_type(r.as_slice(), hex_simd::AsciiCase::Lower))
+    Ok(r.to_vec())
   } else {
     anyhow::bail!("Decryption not supported for md5")
   }
@@ -19,7 +19,7 @@ pub(crate) fn sha1_action(is_enc: bool, input_data: &[u8], _key: Option<&[u8]>, 
     let mut h = Sha1::new();
     h.update(input_data);
     let r = h.finalize();
-    Ok(hex_simd::encode_type(r.as_slice(), hex_simd::AsciiCase::Lower))
+    Ok(r.to_vec())
   } else {
     anyhow::bail!("Decryption not supported for sha1")
   }
@@ -30,7 +30,7 @@ pub(crate) fn sha256_action(is_enc: bool, input_data: &[u8], _key: Option<&[u8]>
     let mut h = Sha256::new();
     h.update(input_data);
     let r = h.finalize();
-    Ok(hex_simd::encode_type(r.as_slice(), hex_simd::AsciiCase::Lower))
+    Ok(r.to_vec())
   } else {
     anyhow::bail!("Decryption not supported for sha256")
   }
@@ -45,10 +45,8 @@ pub(crate) fn sha1prng_action(is_enc: bool, input_data: &[u8], _key: Option<&[u8
     let mut h = Sha1::new();
     h.update(input_data);
     let r = h.finalize();
-    let mut out: Vec<u8> = hex_simd::encode_type(r.as_slice(), hex_simd::AsciiCase::Lower);
-    out.truncate(32);
-    Ok(out)
+    Ok(r.as_slice()[..16].to_vec())
   } else {
-    anyhow::bail!("Decryption not supported for sha256")
+    anyhow::bail!("Decryption not supported for sha1prng")
   }
 }
