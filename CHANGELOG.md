@@ -1,5 +1,11 @@
 # ChangeLog
 
+## [v0.1.7] - 2024-12-20
+
+### Fix
+
+- quickjs's `doAction` callback function now works more reliably
+
 ## [v0.1.6] - 2024-12-11
 
 ### Add
