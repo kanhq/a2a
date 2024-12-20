@@ -119,6 +119,26 @@ async fn test_email() {
 }
 
 #[tokio::test]
+async fn test_shell() {
+  setup_logging();
+  let action = a2a_types::ShellAction {
+    command: "grep".to_string(),
+    args: Some(vec![
+      "=".to_string(),
+      "/home/jia/repo/a2a-rs/Cargo.toml".to_string(),
+    ]),
+    env: None,
+    cwd: None,
+    override_result_mimetype: None,
+  };
+
+  match do_action(Action::Shell(action)).await {
+    Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+    Err(err) => eprintln!("{}", err),
+  }
+}
+
+#[tokio::test]
 async fn test_llm() {
   setup_logging();
   let config_data = include_str!("./config.json");

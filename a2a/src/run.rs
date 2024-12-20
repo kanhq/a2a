@@ -1,11 +1,19 @@
-use std::sync::{Arc, RwLock};
+use std::{
+  future::Future,
+  sync::{Arc, OnceLock, RwLock},
+};
 
 use a2a_core::do_action;
 use a2a_types::{Action, Value};
 use anyhow::Result;
+use futures::{pin_mut, FutureExt};
 use quickjs_rusty::{
   serde::{from_js, to_js},
   Arguments, Context, OwnedJsValue,
+};
+use tokio::{
+  runtime::{Handle, Runtime},
+  task::yield_now,
 };
 use tracing::{debug, info};
 
@@ -47,8 +55,10 @@ pub(crate) async fn execute_js_code(
   let p_config = to_js(ctx, conf)?;
   let p_params = to_js(ctx, params)?;
 
-  let js_do_action = js_ctx.create_callback(do_action_quickjs)?;
-  js_ctx.set_global("doAction", js_do_action)?;
+  // let js_do_action = js_ctx.create_callback(do_action_quickjs)?;
+  // js_ctx.set_global("doAction", js_do_action)?;
+
+  js_ctx.add_callback("doAction", do_action_quickjs)?;
 
   js_ctx
     .eval(&code, true)
@@ -70,7 +80,8 @@ pub(crate) async fn execute_js_code(
       }
     }
   }
-  let result: Value= result.and_then(|r| from_js(ctx, &r).map_err(|err| anyhow::anyhow!(err.to_string())))?;
+  let result: Value =
+    result.and_then(|r| from_js(ctx, &r).map_err(|err| anyhow::anyhow!(err.to_string())))?;
   let logs = match log_lines.read() {
     Ok(lines) => lines.clone(),
     Err(_) => Vec::new(),
@@ -88,26 +99,47 @@ fn do_action_quickjs(args: Arguments) -> Result<OwnedJsValue, String> {
 
   let action = from_js(arg.context(), &arg).map_err(|err| format!("invalid js action: {}", err))?;
 
-  debug!(action = ?action, "do action");
   let action: Action =
     serde_json::from_value(action).map_err(|err| format!("invalid action: {}", err))?;
 
-  //let rt = action_runtime();
-  let res = futures::executor::block_on(async move {
-    let res = do_action(action).await;
-    match res {
-      Ok(val) => to_js(arg.context(), &val).map_err(|err| err.to_string()),
-      Err(err) => Err(err.to_string()),
-    }
+  let res = tokio::task::block_in_place(move || {
+    Handle::current().block_on(async move { do_action(action).await })
   });
+
+  let res = match res {
+    Ok(val) => to_js(arg.context(), &val).map_err(|err| err.to_string()),
+    //Ok(Err(err)) => Err(err.to_string()),
+    Err(err) => Err(err.to_string()),
+  };
 
   res
 }
 
-mod log {
-  use std::{panic::RefUnwindSafe, sync::{Arc, RwLock}};
+fn action_runtime() -> &'static tokio::runtime::Runtime {
+  static ACTION_RUNTIME: OnceLock<Runtime> = OnceLock::new();
+  ACTION_RUNTIME.get_or_init(|| {
+    tokio::runtime::Builder::new_multi_thread()
+      .worker_threads(4)
+      .enable_all()
+      .build()
+      .expect("create action runtime failed")
+  })
+}
 
-use quickjs_rusty::{
+// fn action_runtime() -> Result<Runtime, String> {
+//   tokio::runtime::Builder::new_current_thread()
+//     .enable_all()
+//     .build()
+//     .map_err(|err| err.to_string())
+// }
+
+mod log {
+  use std::{
+    panic::RefUnwindSafe,
+    sync::{Arc, RwLock},
+  };
+
+  use quickjs_rusty::{
     console::{ConsoleBackend, Level},
     OwnedJsValue,
   };
@@ -131,7 +163,6 @@ use quickjs_rusty::{
   }
 
   impl RefUnwindSafe for LogConsole {}
-  
 
   impl ConsoleBackend for LogConsole {
     fn log(&self, level: Level, values: Vec<OwnedJsValue>) {
@@ -158,7 +189,8 @@ use quickjs_rusty::{
       };
 
       if self.enable_lines {
-        self.lines
+        self
+          .lines
           .write()
           .map(|mut lines| {
             lines.push(msg);

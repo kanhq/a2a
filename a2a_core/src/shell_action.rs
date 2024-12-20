@@ -4,6 +4,7 @@ use anyhow::Result;
 
 pub async fn do_action(action: ShellAction) -> Result<ShellActionResult> {
   let mut cmd = tokio::process::Command::new(&action.command);
+  cmd.kill_on_drop(true);
   if let Some(args) = action.args {
     cmd.args(args);
   }
