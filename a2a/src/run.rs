@@ -1,20 +1,13 @@
-use std::{
-  future::Future,
-  sync::{Arc, OnceLock, RwLock},
-};
+use std::sync::{Arc, RwLock};
 
 use a2a_core::do_action;
 use a2a_types::{Action, Value};
 use anyhow::Result;
-use futures::{pin_mut, FutureExt};
 use quickjs_rusty::{
   serde::{from_js, to_js},
   Arguments, Context, OwnedJsValue,
 };
-use tokio::{
-  runtime::{Handle, Runtime},
-  task::yield_now,
-};
+use tokio::runtime::Handle;
 use tracing::{debug, info};
 
 use crate::{app_conf::Runner, config_loader::load_conf_dir};
@@ -115,16 +108,16 @@ fn do_action_quickjs(args: Arguments) -> Result<OwnedJsValue, String> {
   res
 }
 
-fn action_runtime() -> &'static tokio::runtime::Runtime {
-  static ACTION_RUNTIME: OnceLock<Runtime> = OnceLock::new();
-  ACTION_RUNTIME.get_or_init(|| {
-    tokio::runtime::Builder::new_multi_thread()
-      .worker_threads(4)
-      .enable_all()
-      .build()
-      .expect("create action runtime failed")
-  })
-}
+// fn action_runtime() -> &'static tokio::runtime::Runtime {
+//   static ACTION_RUNTIME: OnceLock<Runtime> = OnceLock::new();
+//   ACTION_RUNTIME.get_or_init(|| {
+//     tokio::runtime::Builder::new_multi_thread()
+//       .worker_threads(4)
+//       .enable_all()
+//       .build()
+//       .expect("create action runtime failed")
+//   })
+// }
 
 // fn action_runtime() -> Result<Runtime, String> {
 //   tokio::runtime::Builder::new_current_thread()
