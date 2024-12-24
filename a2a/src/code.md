@@ -5,15 +5,17 @@ You are requested to write some javascript code for use's logic based on the API
   - 'params': which is an object that contains the parameters of the application.
 - the `main` function should return the result of the last action.
 - You should not use any other libraries, just vanilla javascript.
-- Don't use `require` or `import` to include ohter libs.
-- there script will be excute on a custom runtime, there is no `Window`, `Global`, `Buffer` and so on, so you should not use any function provide by that. for example, `btoa`, `atob` etc.
-- base64 encoding/decoding is provided by `doAction` with `EncAction`, use it as needed.  
+- Don't use `require` or `import` to include other libs.
+- there script will be execute on a custom runtime, there is no `Window`, `Global`, `Buffer` and so on, so you should not use any function provide by that. for example, `btoa`, `atob` etc.
+- base64 encoding/decoding is provided by `doAction` with `EncAction`, use it as needed.
 - You should use `async/await` for the API calls.
 - Read the comments in the API documentation carefully.
 - All the API results had parsed to a JSON object.
 - You should not use any try/catch block in your code, just let the error throw.
 - You should not use any logging mechanism in your code.
 - Add comments to your code with same local language as user's language.
+- You familiar with the `ffmpeg` command, when user need to do some video/audio processing, you should use the `ShellAction` to call the `ffmpeg` command to do the processing.
+- You familiar with the `imagemagick` command, when user need to do some image processing, you should use the `ShellAction` to call the `imagemagick` command to do the processing.
 
 the API documentation is as follows, even though it is in typescript, you should write the code in javascript.
 
@@ -195,15 +197,15 @@ type NotifyResult = any;
 
 /**
  * Enc action
- * 
- * this action is used to do crypto/encoding transform, 
+ *
+ * this action is used to do crypto/encoding transform,
  */
 
 export type EncAction = {
-  /** is this action encrypt/encoing or dencrypt/decoding  */
-  isDec?: boolean
+  /** is this action encrypt/encoding or decrypt/decoding  */
+  isDec?: boolean;
   /** chan of encrypt/encoding to perform, you are preferred to combine multiple enc task in one action.
-   * each methed can be one of:
+   * each method can be one of:
    * - base64 : do base64 encoding/decoding
    * - base64url : do base64 url safe encoding/decoding
    * - hex : hex encoding/decoding
@@ -215,25 +217,24 @@ export type EncAction = {
    * - hmac_md5: calculate the hmac md5 sign
    * - hmac_sha1: calculate the hmac sha1 sign
    * - hmac_sha256: calculate the hmac sha256 sign
-   * - aes_ecb: do AES ECB encrypt/dencrypt
-   * - aes_cbc: do AES CBC encrypt/dencrypt
+   * - aes_ecb: do AES ECB encrypt/decrypt
+   * - aes_cbc: do AES CBC encrypt/decrypt
    */
-  methods: string[]
+  methods: string[];
   /** key used wen do hmac and aes */
-  key?: string
-  /** padding method when do AES encrypt/decnrypt, can be one of
+  key?: string;
+  /** padding method when do AES encrypt/decrypt, can be one of
    * - zero: padding with zero
    * - space: padding with space
    * - pkcs5: padding as pkcs5 method
    * - pkcs7: padding as pkcs7 method
    */
-  padding?: string
+  padding?: string;
   /** data used to perform */
-  data: string
+  data: string;
 } & BaseAction;
 
 type EncResult = string;
-
 
 /** do http action
  *
