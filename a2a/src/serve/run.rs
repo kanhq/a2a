@@ -1,5 +1,6 @@
 use std::{io::Write, sync::Arc};
 
+use a2a_tojson::FromJsonValue;
 use a2a_types::Value;
 use anyhow::Result;
 use axum::{extract::State, Json};
@@ -19,16 +20,21 @@ pub struct OneShotRequest {
   params: Value,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+struct ParamFile {
+  kind: String,
+  name: String,
+  content: Value,
+}
+
 pub async fn post_json_handle(
-  State(_state): State<Arc<AppState>>,
+  State(state): State<Arc<AppState>>,
   Json(req): Json<OneShotRequest>,
 ) -> (StatusCode, Json<Value>) {
-  let result = execute_js_code(&req.script, &req.config, &req.params, None).await;
-
-  match result {
+  match post_json_handle_impl(&state, req).await {
     Ok(val) => (StatusCode::OK, Json(val)),
     Err(err) => {
-      warn!("oneshot {}", err);
+      warn!(?err, "oneshot failed");
       (
         StatusCode::INTERNAL_SERVER_ERROR,
         Json(Value::String(err.to_string())),
@@ -51,6 +57,33 @@ pub async fn post_form_handle(
       )
     }
   }
+}
+
+async fn post_json_handle_impl(_state: &AppState, mut req: OneShotRequest) -> Result<Value> {
+  let base = tempfile::Builder::new().prefix("a2a-").tempdir()?;
+  debug!(?base, "oneshot start");
+
+  req.params.as_object_mut().map(|m| {
+    m.iter_mut().for_each(
+      |(_k, v)| match serde_json::from_value::<ParamFile>(v.clone()) {
+        Ok(pf) => {
+          let mut file = base.path().to_path_buf();
+          file.push(pf.name);
+          match Vec::<u8>::from_json(&pf.content).map(|data| std::fs::write(&file, data)) {
+            Ok(_) => {
+              *v = Value::String(file.to_string_lossy().to_string());
+            }
+            Err(err) => {
+              warn!(?err, "save param file failed");
+            }
+          }
+        }
+        Err(_) => {}
+      },
+    );
+  });
+
+  execute_js_code(&req.script, &req.config, &req.params, None).await
 }
 
 async fn post_form_handle_impl(_state: &AppState, mut form: Multipart) -> Result<Value> {
