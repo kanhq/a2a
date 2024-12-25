@@ -1,10 +1,11 @@
 # ChangeLog
 
-## [v0.1.7] - 2024-12-20
+## [v0.1.7] - 2024-12-25
 
 ### Fix
 
 - quickjs's `doAction` callback function now works more reliably
+- `run` of service support file extraction
 
 ## [v0.1.6] - 2024-12-11
 
