@@ -33,7 +33,7 @@ impl FromJsonValue for Vec<u8> {
       let s = &s[pos + 1..];
       base64_simd::STANDARD
         .decode_to_vec(s)
-        .map_err(|err| err.into())
+        .map_err(|err: base64_simd::Error| err.into())
     } else {
       Err(anyhow::anyhow!("Not a data url"))
     }
