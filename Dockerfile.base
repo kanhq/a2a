@@ -1,0 +1,8 @@
+
+FROM debian:bookworm-slim
+
+ENV TZ="Asia/Shanghai"
+
+RUN rm /etc/apt/sources.list.d/debian.sources
+ADD ./etc/apt/sources.list /etc/apt/sources.list
+RUN apt-get update && apt-get install -y ca-certificates libssl3 imagemagick ffmpeg && rm -rf /var/lib/apt/lists/*
