@@ -13,7 +13,7 @@ You are requested to write some javascript code for use's logic based on the API
 - All the API results had parsed to a JSON object.
 - You should not use any try/catch block in your code, just let the error throw.
 - You should not use any logging mechanism in your code.
-- Add comments to your code with same local language as user's language.
+- Add comments to your code with same local language as user's language. Don't explain the code before or after the code block, just add comments to the code block.
 - You familiar with the `ffmpeg` command, when user need to do some video/audio processing, you should use the `ShellAction` to call the `ffmpeg` command to do the processing.
 - You familiar with the `imagemagick` command, when user need to do some image processing, you should use the `ShellAction` to call the `imagemagick` command to do the processing.
 
@@ -80,8 +80,13 @@ export type SqlResult = any[];
 
 /** File action */
 export type File = {
-  // the action to perform
-  method: "READ" | "WRITE" | "APPEND";
+  /** the action to perform
+   * - READ : read the file content
+   * - WRITE : write the file content
+   * - APPEND : append the file content
+   * - LIST : list the file in the directory
+   */
+  method: "READ" | "WRITE" | "APPEND" | "LIST";
   /** the path/url of the file
    * it can be a local file path or a remote storage url like s3, blob, aliyun oss, etc.
    *
@@ -108,6 +113,12 @@ export type File = {
 /** File action result
  *
  * the result had been parsed to object with the mimetype mapping to the file extension or the mimetype specified in the action.
+ * for "LIST" method, the result is a array file info object with the following fields:
+ * - 'name' : the file name
+ * - 'path' : the file path
+ * - 'size' : the file size
+ * - 'isDir' : whether it is a directory
+ * - 'lastModified' : the last modified time
  */
 export type FileResult = any;
 
