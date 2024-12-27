@@ -26,7 +26,7 @@ fn split_schema_path(full: &str) -> (&str, String) {
 fn read_data_url(data_url: &str) -> Option<FileActionResult> {
   if !data_url.starts_with("data:") {
     return None;
-  } 
+  }
 
   let data_url = data_url.trim_start_matches("data:");
 
