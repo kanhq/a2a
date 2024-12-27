@@ -15,9 +15,9 @@ sqlx = { version = "0.8", features = [
 serde.workspace = true
 serde_json.workspace = true
 anyhow.workspace = true
-quick-xml = { version = "0.36", features = ["serialize", "overlapped-lists"] }
+quick-xml = { version = "0.37", features = ["serialize", "overlapped-lists"] }
 tokio.workspace = true
-opendal = { version = "0.50", features = [
+opendal = { version = "0.51", features = [
   "services-azblob",
   "services-azdls",
   "services-cos",
@@ -60,7 +60,7 @@ sha2 = "0.10"
 hmac = "0.12"
 aes = "0.8"
 cbc = "0.1"
-rand= "0.8"
+rand = "0.8"
 
 
 [dev-dependencies]
