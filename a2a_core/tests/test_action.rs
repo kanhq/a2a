@@ -1,9 +1,9 @@
-use a2a_core::do_action;
+use a2a_core::{do_action, utils::uuid_v7};
 use a2a_types::{Action, EMailAction, LlmAction, NotifyAction, SqlAction, Value};
 use rustls::crypto::aws_lc_rs;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tracing::info;
+use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
 
 fn setup_logging() {
@@ -191,5 +191,14 @@ async fn test_enc() {
   match do_action(Action::Enc(action)).await {
     Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
     Err(err) => eprintln!("{}", err),
+  }
+}
+
+#[tokio::test]
+async fn test_uuid() {
+  setup_logging();
+
+  for _ in 0..10 {
+    println!("uuid: {}", uuid_v7());
   }
 }
