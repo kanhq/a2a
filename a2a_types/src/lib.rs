@@ -150,7 +150,7 @@ pub struct EncAction {
 
 pub type EncActionResult = String;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Action {
   Http(HttpAction),
@@ -161,4 +161,48 @@ pub enum Action {
   Llm(LlmAction),
   Notify(NotifyAction),
   Enc(EncAction),
+}
+
+struct FormatterWriter<'a, 'b> {
+  f: &'a mut std::fmt::Formatter<'b>,
+}
+
+impl std::io::Write for FormatterWriter<'_, '_> {
+  fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    let s = unsafe { std::str::from_utf8_unchecked(buf) };
+    match self.f.write_str(s) {
+      Ok(()) => Ok(buf.len()),
+      Err(_) => Err(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "write error",
+      )),
+    }
+  }
+
+  fn flush(&mut self) -> std::io::Result<()> {
+    Ok(())
+  }
+}
+
+impl std::fmt::Debug for Action {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    let mut w = FormatterWriter { f };
+    serde_json::to_writer(&mut w, self).map_err(|_| std::fmt::Error)
+  }
+}
+
+pub struct ActionResultWrapper<'a> {
+  pub result: &'a anyhow::Result<Value>,
+}
+
+impl std::fmt::Debug for ActionResultWrapper<'_> {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    match self.result {
+      Err(e) => write!(f, "{:?}", e),
+      Ok(v) => {
+        let mut w = FormatterWriter { f };
+        serde_json::to_writer(&mut w, v).map_err(|_| std::fmt::Error)
+      }
+    }
+  }
 }
