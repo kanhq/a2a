@@ -1,5 +1,14 @@
 # ChangeLog
 
+## [v0.1.8] - 2024-12-30
+
+### Add
+
+- log to file
+- uuid_v7 function
+- restore write code service
+- restore list in file action
+
 ## [v0.1.7] - 2024-12-25
 
 ### Fix
