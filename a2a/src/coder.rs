@@ -23,7 +23,7 @@ use tokio::{
   io::{AsyncBufRead, AsyncBufReadExt, Lines},
   task::JoinSet,
 };
-use tracing::{debug, info, warn};
+use tracing::{debug, info, trace, warn};
 
 pub const DEFAULT_SYSTEM_PROMPT: &'static str = include_str!("./code.md");
 
@@ -316,7 +316,7 @@ impl<R: AsyncBufRead> Stream for LlmStream<R> {
     match rd.poll_next_line(cx) {
       Poll::Ready(Ok(None)) => Poll::Ready(None),
       Poll::Ready(Ok(Some(line))) => {
-        debug!(?line, "stream line");
+        trace!(?line, "stream line");
         if line.is_empty() {
           Poll::Ready(Some("".to_string()))
         } else {
