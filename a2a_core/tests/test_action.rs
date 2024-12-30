@@ -3,7 +3,7 @@ use a2a_types::{Action, EMailAction, LlmAction, NotifyAction, SqlAction, Value};
 use rustls::crypto::aws_lc_rs;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tracing::{debug, info};
+use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 fn setup_logging() {

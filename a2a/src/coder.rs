@@ -11,7 +11,11 @@ use crate::{
 
 use a2a_types::Value;
 use anyhow::Result;
-use futures::{Stream, TryStreamExt};
+use axum::{
+  body::Body,
+  response::{sse::Event, IntoResponse, Response, Sse},
+};
+use futures::{Stream, StreamExt, TryStreamExt};
 use pin_project_lite::pin_project;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -316,11 +320,9 @@ impl<R: AsyncBufRead> Stream for LlmStream<R> {
         if line.is_empty() {
           Poll::Ready(Some("".to_string()))
         } else {
-          let line = Self::process_line(line);
-          if line.is_none() {
-            Poll::Ready(Some("".to_string()))
-          } else {
-            Poll::Ready(Some(line.unwrap()))
+          match line.strip_prefix("data:") {
+            Some(data) => Poll::Ready(Some(data.to_string())),
+            None => Poll::Pending,
           }
         }
       }
@@ -330,23 +332,8 @@ impl<R: AsyncBufRead> Stream for LlmStream<R> {
   }
 }
 
-impl<R> LlmStream<R> {
-  fn process_line(line: String) -> Option<String> {
-    let line = line.strip_prefix("data:")?;
-    if let Ok(data) = serde_json::from_str::<Value>(line) {
-      data
-        .pointer("/choices/0/delta/content")
-        .and_then(|c| c.as_str())
-        .map(|c| c.to_string())
-    } else {
-      warn!(?line, "parse stream line failed");
-      None
-    }
-  }
-}
-
 #[allow(dead_code)]
-pub async fn write_code_stream(code: &WriteCode) -> Result<impl Stream<Item = String>> {
+pub async fn write_code_stream(code: &WriteCode) -> Result<Response<Body>> {
   info!(
     provider = code.provider.as_str(),
     model = code.model.as_str(),
@@ -391,7 +378,12 @@ pub async fn write_code_stream(code: &WriteCode) -> Result<impl Stream<Item = St
 
   let lines = tokio_util::io::StreamReader::new(stream).lines();
 
-  Ok(LlmStream { lines })
+  let stream = LlmStream { lines }
+    .filter(|line| futures::future::ready(!line.is_empty()))
+    .map(|line| Event::default().data(line.trim()))
+    .map(|line| Ok::<_, std::io::Error>(line));
+
+  Ok(Sse::new(stream).into_response())
 }
 
 fn extract_code(resp: &str, provider: &str, model: &str) -> String {

@@ -4,8 +4,8 @@ use crate::{app_conf::Serve, config_loader::load_conf_dir};
 use a2a_types::Value;
 use anyhow::Result;
 use axum::{http::HeaderName, routing::post};
-use tower_http::cors::{Any, CorsLayer};
 use scheduler::ScheduleAdminSender;
+use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
 mod admin;
@@ -38,7 +38,10 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
   let admin_path = arg.admin_path.as_ref().map_or("/admin", |p| p.as_str());
   let cors = CorsLayer::new()
     .allow_methods(Any)
-    .allow_headers(vec![HeaderName::from_static("content-type"), HeaderName::from_static("authorization")])
+    .allow_headers(vec![
+      HeaderName::from_static("content-type"),
+      HeaderName::from_static("authorization"),
+    ])
     .allow_origin(Any);
   let app = axum::Router::new()
     .nest_service(
@@ -46,13 +49,12 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
       tower_http::services::ServeDir::new(arg.html_root_path.clone()),
     )
     .route("/api/*file", post(api::post_handler).get(api::get_handler))
-    //.route("/code", post(writer::coder_handle))
+    .route("/code", post(writer::coder_handle))
     .route("/run/json", post(run::post_json_handle))
     .route("/run/form", post(run::post_form_handle))
     .route(admin_path, post(admin::post_handler))
     .with_state(state)
-    .layer(cors)
-    ;
+    .layer(cors);
 
   let listener = tokio::net::TcpListener::bind(&arg.listen).await?;
 
