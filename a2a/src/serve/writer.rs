@@ -1,22 +1,11 @@
-/*
-use std::{
-  convert::Infallible,
-  sync::{Arc, OnceLock},
-  vec,
-};
+use std::sync::{Arc, OnceLock};
 
-use anyhow::Result;
 use axum::{
   body::Body,
   extract::State,
-  response::{
-    sse::{Event, KeepAlive},
-    IntoResponse, Sse,
-  },
+  response::{IntoResponse, Response},
   Json,
 };
-use axum_streams::StreamBodyAs;
-use futures::{stream, Stream, StreamExt};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use tracing::warn;
@@ -35,7 +24,7 @@ pub struct WriteRequest {
 pub async fn coder_handle(
   State(_state): State<Arc<AppState>>,
   Json(req): Json<WriteRequest>,
-) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+) -> Response<Body> {
   let code = crate::coder::WriteCode {
     system: writer_conf().system.clone(),
     user: req.prompt,
@@ -48,14 +37,10 @@ pub async fn coder_handle(
   };
 
   match write_code_stream(&code).await {
-    Ok(s) => {
-      let s = s.map(|v| Event::default().data(v)).map(Ok);
-      Sse::new(s).keep_alive(KeepAlive::default())
-    }
+    Ok(r) => r,
     Err(err) => {
       warn!("coder {}", err);
-      let s = stream::once(async { Ok(Event::default().data(err.to_string())) });
-      Sse::new(s).keep_alive(KeepAlive::default())
+      (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response()
     }
   }
 }
@@ -74,4 +59,3 @@ fn writer_conf() -> &'static WriteConf {
     api_key: std::env::var("OPENAI_API_KEY").unwrap_or_default(),
   })
 }
-*/
