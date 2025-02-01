@@ -5,9 +5,13 @@
   "dbconn": "postgresql://jia:lijia@127.0.0.1:5432/kaccount?sslmode=disable",
   "datasrc": "/home/jia/repo/a2a-rs/a2a/test_scripts/data.csv",
   "llm01": {
-    "provider": "lingyi",
-    "model": "yi-lightning",
-    "url": "http://127.0.0.1:30027/v1/chat/completions",
-    "key": "329X3bLwOGFDabFmJo26O00ZGDUe5zeHQKWVdbJYNJ4="
+    "provider": "vertex-ai",
+    "model": "gemini-2.0-flash-exp",
+    "url": "https://jiallm.kanhq.com:30443/v1/chat/completions",
+    "key": "Bq208q0NdjbCaGnhrjhMphePMQNMeqBEq/33k668/vg="
+  },
+  "index": "https://fund.eastmoney.com/fund.html",
+  "browser": {
+    "path": "/home/jia/tools/chrome/linux-132.0.6834.110/chrome-linux64/chrome"
   }
 }

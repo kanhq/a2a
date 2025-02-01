@@ -1,6 +1,6 @@
 You are requested to write some javascript code for use's logic based on the API provided below. You should read the typescript API documentation listed below and write the javascript code accordingly. When you are writing the code, you should to following rules:
 
-- You should define a async function `export async function main(config, params)` which is the entry point of the code. the function should have two parameters:
+- You should define a async function `async function main(config, params)` which is the entry point of the code. the function should have two parameters:
   - 'config': which is an object that contains the configuration of the application.
   - 'params': which is an object that contains the parameters of the application.
 - the `main` function should return the result of the last action.
@@ -20,7 +20,7 @@ You are requested to write some javascript code for use's logic based on the API
 the API documentation is as follows, even though it is in typescript, you should write the code in javascript.
 
 ```typescript
-export type ActionKind =
+type ActionKind =
   | "http"
   | "sql"
   | "file"
@@ -28,17 +28,18 @@ export type ActionKind =
   | "shell"
   | "llm"
   | "notify"
-  | "enc";
+  | "enc"
+  | "crawl";
 
 /** The base action type, all Action had these fields */
-export type BaseAction = {
+type BaseAction = {
   kind: ActionKind;
   /** parse result will use this filed as mimetype instead detected mimetype */
   overrideResultMimeType?: string;
 };
 
 /** Http request information */
-export type Http = {
+type HttpAction = {
   method: "GET" | "POST" | "PUT" | "DELETE" | Uppercase<string>;
   url: string;
   headers?: Record<string, string>;
@@ -46,7 +47,7 @@ export type Http = {
 } & BaseAction;
 
 /** Http action result */
-export type HttpResult = {
+type HttpResult = {
   /** the status code of the response */
   status: number;
   /** the headers of the response */
@@ -56,7 +57,7 @@ export type HttpResult = {
 };
 
 /** Execute a SQL query */
-export type Sql = {
+type SqlAction = {
   /** the connection string of database */
   connection: string;
   /** the SQL to execute,
@@ -76,10 +77,10 @@ export type Sql = {
 /** SQL action result
  * each row is a object with column name as key and column value as value
  */
-export type SqlResult = any[];
+type SqlResult = any[];
 
 /** File action */
-export type File = {
+type FileAction = {
   /** the action to perform
    * - READ : read the file content
    * - WRITE : write the file content
@@ -120,10 +121,10 @@ export type File = {
  * - 'isDir' : whether it is a directory
  * - 'lastModified' : the last modified time
  */
-export type FileResult = any;
+type FileResult = any;
 
 /** EMail action */
-export type EMailAction = {
+type EMailAction = {
   /** the action to perform */
   method: "RECV" | "SEND";
   /** the email account configuration */
@@ -137,7 +138,7 @@ export type EMailAction = {
 };
 
 /** EMail Message */
-export type EMailMessage = {
+type EMailMessage = {
   /** the email id */
   id: number;
   subject: string;
@@ -153,7 +154,7 @@ export type EMailMessage = {
 type EMailResult = EMailMessage[];
 
 /** Shell action */
-export type ShellAction = {
+type ShellAction = {
   /** the shell command to execute */
   command: string;
   /** the arguments of the command */
@@ -173,7 +174,7 @@ type ShellResult = string;
  * when user provide any JSON structure description, you should copy it to the system prompt and let the LLM generate the result based on it.
  * when user need process image, you should set the `userImage` field to the image, but don't put any image in the `userPrompt` field.
  */
-export type LlmAction = {
+type LlmAction = {
   /** the connection to the LLM */
   connection: any;
   /** the prompt for 'system' role */
@@ -195,7 +196,7 @@ type LLMResult = any;
  * when it is object, it should match the format of the IM service.
  * when it is string, it will be sent as text message type of the IM service, text can be markdown or plain text.
  */
-export type NotifyAction = {
+type NotifyAction = {
   /** the webhook url */
   url: any;
   /** the message to be sent */
@@ -212,7 +213,7 @@ type NotifyResult = any;
  * this action is used to do crypto/encoding transform,
  */
 
-export type EncAction = {
+type EncAction = {
   /** is this action encrypt/encoding or decrypt/decoding  */
   isDec?: boolean;
   /** chan of encrypt/encoding to perform, you are preferred to combine multiple enc task in one action.
@@ -246,6 +247,42 @@ export type EncAction = {
 } & BaseAction;
 
 type EncResult = string;
+
+type CrawlURL = {
+  url: string;
+  // the selector to extract the content
+  selector?: string;
+  // the wait selector to wait for the selector to appear
+  wait?: string;
+};
+
+/** Crawl action
+ *
+ * this action is used to crawl and extract the web page content.
+ * the crawl is based on the headless browser, the crawled content can be send to a optional llm action to generate structured data.
+ * crawl action should be preferred used, don't use http action to crawl the web page.
+ */
+type CrawlAction = {
+  // the browser configuration used to crawl
+  browser: any;
+  // the urls to crawl, use one crawl action with multiple urls is preferred
+  urls: string[] | CrawlURL[];
+  // the number of browser to run in parallel
+  parallel?: number;
+  // the llm connection  used to generate structured data
+  llm?: any;
+  // a dictionary of fields definition for each url to crawl
+  // the key is the url, may contain wildcards
+  // the value is the fields to extract, each field must be 'camelCase' english word, you may need do translation for the user's language
+  //
+  // fields can be configured by the user, or you must build it from on the user's request
+  fields?: {
+    [url: string]: string[];
+  };
+} & BaseAction;
+
+// crawl action result is a dictionary of the url and the result
+type CrawlResult = any;
 
 /** do http action
  *
@@ -328,4 +365,13 @@ declare function doAction(action: NotifyAction): Promise<NotifyResult>;
  * @returns the result of the action, the result is the stdout of the command
  */
 declare function doAction(action: EncAction): Promise<EncResult>;
+
+/**
+ * do crawl action
+ *
+ *
+ * @param action the crawl action to perform
+ * @returns the result of the action, the result is the stdout of the command
+ */
+declare function doAction(action: CrawlAction): Promise<any>;
 ```

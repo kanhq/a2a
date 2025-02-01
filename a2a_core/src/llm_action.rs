@@ -1,10 +1,12 @@
 use a2a_types::{LlmAction, LlmActionResult, Value};
 use anyhow::Result;
+use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
-use tracing::debug;
+use tokio::io::AsyncBufReadExt;
+use tracing::{debug, trace, warn};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
-struct LlmConnection {
+pub(crate) struct LlmConnection {
   pub url: String,
   pub key: String,
   pub provider: String,
@@ -31,27 +33,51 @@ pub async fn do_action(action: LlmAction) -> Result<LlmActionResult> {
 
   let response = client.build()?.execute(req).await?;
 
-  let body = response.text().await?;
-  debug!(?body, "llm_response");
-  let body = serde_json::from_str::<SimpleLlmResponse>(&body)?;
-  let body = if let Some(mut choices) = body.choices {
-    choices.pop().map(|c| c.message.content)
-  } else {
-    if let Some(err) = body.error {
-      if let Some(message) = err.get("message") {
-        return Err(anyhow::anyhow!("{}", message));
-      } else {
-        return Err(anyhow::anyhow!("failed"));
+  debug!(?response, "llm response");
+  let mut body = String::default();
+  if !response.status().is_success() {
+    return Err(anyhow::anyhow!("Request failed: {}", response.status()));
+  }
+  response.error_for_status_ref()?;
+  let stream = response
+    .bytes_stream()
+    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
+  let mut read = tokio_util::io::StreamReader::new(stream).lines();
+
+  while let Some(chunk) = read.next_line().await? {
+    let chunk = chunk.trim();
+    if chunk.starts_with("data:") {
+      let chunk = chunk.strip_prefix("data:").unwrap().trim();
+      if chunk.is_empty() {
+        continue;
       }
-    } else {
-      return Err(anyhow::anyhow!("No response"));
+      if chunk.eq("[DONE]") {
+        break;
+      }
+      match serde_json::from_str::<SimpleLlmResponse>(chunk) {
+        Ok(data) => {
+          let c = data
+            .choices
+            .as_ref()
+            .and_then(|c| c.get(0))
+            .and_then(|c| c.delta.as_ref())
+            .map(|c| c.content.as_str());
+          if let Some(c) = c {
+            trace!(?c, "stream chunk");
+            body.push_str(c);
+          }
+        }
+        Err(err) => {
+          warn!(?err, chunk, "Failed to parse response");
+        }
+      }
     }
-  };
+  }
+
   if is_json {
-    let body = extract_json(body)?;
+    let body = extract_json(Some(body))?;
     serde_json::from_str(&body).map_err(|e| e.into())
   } else {
-    let body = body.unwrap_or_default();
     Ok(serde_json::Value::String(body))
   }
 }
@@ -62,6 +88,7 @@ struct SimpleLlmRequest {
   temperature: Option<f32>,
   messages: Vec<Message>,
   response_format: Option<ResponseFormat>,
+  stream: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -72,7 +99,8 @@ struct SimpleLlmResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Choice {
-  message: MessageS,
+  message: Option<MessageS>,
+  delta: Option<MessageS>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -142,11 +170,13 @@ fn to_request(
     temperature: connection.temperature,
     messages,
     response_format,
+    stream: true,
   };
 
   reqwest::Client::new()
     .request(reqwest::Method::POST, &connection.url)
     .header("x-portkey-provider", &connection.provider)
+    .header("x-portkey-model", &connection.model)
     .header("content-type", "application/json")
     .bearer_auth(&connection.key)
     .json(&body)
@@ -156,13 +186,14 @@ fn to_request(
 
 fn extract_json(body: Option<String>) -> Result<String> {
   match body {
-    Some(body) => match body.find('{') {
-      Some(start) => {
-        let end = body.rfind('}').ok_or(anyhow::anyhow!("Invalid JSON"))?;
-        Ok(body[start..=end].to_string())
+    Some(body) => {
+      let first = body.find(|c| c == '{' || c == '[');
+      let last = body.rfind(|c| c == '}' || c == ']');
+      match (first, last) {
+        (Some(start), Some(end)) => Ok(body[start..=end].to_string()),
+        _ => Ok(body),
       }
-      None => Ok(body),
-    },
+    }
     None => Ok("{}".to_string()),
   }
 }

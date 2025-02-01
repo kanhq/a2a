@@ -7,7 +7,9 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 fn setup_logging() {
-  let filter = EnvFilter::from_default_env().add_directive("a2a_core=trace".parse().unwrap());
+  let filter = EnvFilter::from_default_env()
+    .add_directive("a2a_core=trace".parse().unwrap())
+    .add_directive("headless_chrome=warn".parse().unwrap());
   tracing_subscriber::fmt()
     .with_env_filter(filter)
     .with_level(true)
@@ -200,5 +202,37 @@ async fn test_uuid() {
 
   for _ in 0..10 {
     println!("uuid: {}", uuid_v7());
+  }
+}
+
+#[tokio::test]
+async fn test_crawl() {
+  setup_logging();
+
+  let config_data = include_str!("./config.json");
+  let conf = serde_json::from_str::<TestConfig>(config_data).unwrap();
+
+  let action = a2a_types::CrawlAction {
+    override_result_mimetype: None,
+    browser: Some(json!({
+      "path": "/home/jia/tools/chrome/linux-132.0.6834.110/chrome-linux64/chrome",
+      //"enable_logging": true,
+    })),
+    urls: vec![json!("https://qtf.kanhq.com/qtf/")],
+    parallel: Some(1),
+    llm: Some(conf.llm.clone()),
+    //     fields: Some(json!({
+    //         "*" : r#"
+    // // all links in the page
+    // type Data = {
+    //   name: string
+    //   url: string
+    // }"#,
+    //     })),
+    fields: Some(json!(["name", "url"])),
+  };
+  match do_action(Action::Crawl(action)).await {
+    Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+    Err(err) => eprintln!("{}", err),
   }
 }
