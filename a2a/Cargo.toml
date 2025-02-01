@@ -21,7 +21,7 @@ a2a_types = { path = "../a2a_types" }
 reqwest.workspace = true
 time.workspace = true
 dotenvy = "0.15"
-tokio-util = "0.7"
+tokio-util.workspace = true
 axum = { version = "0.7", features = ["macros", "query"] }
 tower-http = { version = "0.6", features = ["fs", "cors"] }
 croner = "2"

@@ -268,7 +268,7 @@ pub async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
         }
         Err(err) => {
           warn!(?err, chunk, "parse stream error");
-          break;
+          continue;
         }
       }
     }

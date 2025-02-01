@@ -14,6 +14,7 @@ serde_json = { version = "1" }
 serde = { version = "1", features = ["derive"] }
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
 reqwest = { version = "0.12", features = ["stream", "json"] }
 bytes = { version = "1", features = ["serde"] }
 tracing = "0.1"

@@ -150,6 +150,37 @@ pub struct EncAction {
 
 pub type EncActionResult = String;
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CrawlAction {
+  // common fields
+  pub override_result_mimetype: Option<String>,
+
+  // crawl fields
+  /// the browser options used to crawl, default to find the browser from the environment
+  /// see https://docs.rs/headless_chrome/latest/headless_chrome/browser/struct.LaunchOptions.html for more details
+  pub browser: Option<Value>,
+  /// the url used to crawl
+  /// can be a string or a object with 'url', 'selector', 'wait' fields
+  pub urls: Vec<Value>,
+  /// the parallel number of the urls, default is 1
+  pub parallel: Option<usize>,
+  /// the llm used to extract data from crawl result by prompt
+  pub llm: Option<Value>,
+  /// the map of url pattern to extract prompt
+  /// the key is the url pattern, the value is the prompt
+  /// key can be
+  /// - a string, eg "https://example.com"
+  /// - string with wildcard, eg "https://example.com/*"
+  /// - string start with '/' will be treated as regex, eg "/https://example.com/.*"
+  /// the value is the is struct of data to extract, it can be
+  /// - a string, full typescript type definition
+  /// - a array of string, the fields to extract, each field will be treated as string type
+  pub fields: Option<Value>,
+}
+
+pub type CrawlActionResult = Value;
+
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Action {
@@ -161,6 +192,7 @@ pub enum Action {
   Llm(LlmAction),
   Notify(NotifyAction),
   Enc(EncAction),
+  Crawl(CrawlAction),
 }
 
 struct FormatterWriter<'a, 'b> {
@@ -188,6 +220,22 @@ impl std::fmt::Debug for Action {
   fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
     let mut w = FormatterWriter { f };
     serde_json::to_writer(&mut w, self).map_err(|_| std::fmt::Error)
+  }
+}
+
+impl Action {
+  pub fn get_kind(&self) -> &str {
+    match self {
+      Action::Http(_) => "http",
+      Action::File(_) => "file",
+      Action::Sql(_) => "sql",
+      Action::EMail(_) => "email",
+      Action::Shell(_) => "shell",
+      Action::Llm(_) => "llm",
+      Action::Notify(_) => "notify",
+      Action::Enc(_) => "enc",
+      Action::Crawl(_) => "crawl",
+    }
   }
 }
 
