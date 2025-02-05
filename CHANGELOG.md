@@ -1,5 +1,15 @@
 # ChangeLog
 
+## [v0.1.9] - 2025-02-05
+
+### Add
+
+- new 'crawl' action used to crawl a website
+
+### Modified
+
+- share api definition with the code generation and nodejs binding
+
 ## [v0.1.8] - 2024-12-30
 
 ### Add
