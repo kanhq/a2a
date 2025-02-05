@@ -26,6 +26,7 @@ use tokio::{
 use tracing::{debug, info, trace, warn};
 
 pub const DEFAULT_SYSTEM_PROMPT: &'static str = include_str!("./code.md");
+pub const DEFAULT_API_DEFINE: &'static str = include_str!("../../bindings/nodejs/action.ts");
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct WriteCode {
@@ -57,7 +58,10 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
       if arg.no_system.unwrap_or(false) {
         "You are a helper".to_string()
       } else {
-        DEFAULT_SYSTEM_PROMPT.to_string()
+        format!(
+          "{}\n```typescript\n{}\n```",
+          DEFAULT_SYSTEM_PROMPT, DEFAULT_API_DEFINE
+        )
       }
     });
 

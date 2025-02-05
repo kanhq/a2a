@@ -1,9 +1,10 @@
-import { a2a, doAction } from '../index'
+import { doAction, a2a, A2Action } from '..'
 import { expect, test } from "bun:test";
 
 
 test('sync function from native code', async () => {
   console.log("test database connection");
+
 
   const conf = {
     "pgsql": "postgresql://jia:lijia@127.0.0.1:5432/kaccount?sslmode=disable",
@@ -48,7 +49,7 @@ test('sync function from native code', async () => {
   ]
 
   for (const action of actions) {
-    const sqlAction = {
+    const sqlAction: A2Action = {
       ...action,
       kind: 'sql',
       connection: conf.pgsql,
