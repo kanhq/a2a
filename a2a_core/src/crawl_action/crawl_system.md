@@ -1,1 +1,1 @@
-please read the HTML in <data></data>, then extract the data as JSON, the JSON should match the `typescript` `Data` definition from user message, please notice the comment in the type definition if any, it will tell you how to extract data.
+please read the HTML in <data></data>, then extract the data as JSON, the JSON should match the typescript `Data` definition from user message, please notice the comment in the type definition if any, it will tell you how to extract data.
