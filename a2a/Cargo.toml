@@ -4,7 +4,7 @@ version = "0.1.8"
 edition = "2021"
 
 [dependencies]
-quickjs-rusty = { version = "0.6", features = ["bigint"] }
+quickjs-rusty = { version = "0.7", features = ["bigint"] }
 futures.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
