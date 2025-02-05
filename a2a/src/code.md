@@ -373,5 +373,5 @@ declare function doAction(action: EncAction): Promise<EncResult>;
  * @param action the crawl action to perform
  * @returns the result of the action, the result is the stdout of the command
  */
-declare function doAction(action: CrawlAction): Promise<any>;
+declare function doAction(action: CrawlAction): Promise<CrawlResult>;
 ```
