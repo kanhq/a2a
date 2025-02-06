@@ -19,14 +19,14 @@ pub(crate) fn load_conf_dir(conf_dir: &Path) -> Result<Value> {
 }
 
 pub(crate) fn load_configs(pattern: &str) -> Result<Value> {
-  let walker = globwalk::glob(pattern)?;
+  let walker = glob::glob(pattern)?;
 
   let mut conf = Default::default();
 
   for entry in walker {
     match entry {
       Ok(entry) => {
-        let file_name = entry.path();
+        let file_name = entry.as_path();
         trace!(?file_name, "load config");
         let ext = file_name.extension().unwrap_or_default();
         let mimetype = ext_to_mime(ext.to_str().unwrap_or_default());
