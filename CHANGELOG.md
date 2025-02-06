@@ -1,5 +1,15 @@
 # ChangeLog
 
+## [v0.0.10]
+
+### Add
+
+- 'list' in file action now supports a wildcard pattern
+
+### Modified
+
+- use 'glob' instead of 'globwalk'
+
 ## [v0.1.9] - 2025-02-05
 
 ### Add

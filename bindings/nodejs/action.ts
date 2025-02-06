@@ -67,7 +67,7 @@ type FileAction = {
    * - READ : read the file content
    * - WRITE : write the file content
    * - APPEND : append the file content
-   * - LIST : list the file in the directory
+   * - LIST : list the file in the directory, the path can have `**` to match all sub directories
    */
   method: "READ" | "WRITE" | "APPEND" | "LIST";
   /** the path/url of the file
