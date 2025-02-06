@@ -265,10 +265,10 @@ async fn load_schedulers(
     let mut schedules = Vec::new();
     let pattern = scheduler_root.join("**/*.json");
 
-    if let Some(walker) = pattern.to_str().and_then(|p| globwalk::glob(p).ok()) {
+    if let Some(walker) = pattern.to_str().and_then(|p| glob::glob(p).ok()) {
       for entry in walker {
         if let Ok(entry) = entry {
-          let file_name = entry.path();
+          let file_name = entry.as_path();
           match load_schedulers_file(api_root, scheduler_root, conf, file_name) {
             Ok(a) => {
               schedules.extend(a);
