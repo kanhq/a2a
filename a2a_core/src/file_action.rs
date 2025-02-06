@@ -90,10 +90,26 @@ pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
       Ok(serde_json::Value::Null)
     }
     "list" => {
-      let items = op.list(&path).await?;
+      let (path, recursive, pattern) = match path.as_str().find("**") {
+        Some(idx) => (
+          &path.as_str()[..idx],
+          true,
+          Some(glob::Pattern::new(&path.as_str()[idx..])?),
+        ),
+        None => (path.as_str(), false, None),
+      };
+
+      let items = op.list_with(path).recursive(recursive).await?;
 
       let items = items
         .into_iter()
+        .filter(|item| {
+          if let Some(pattern) = &pattern {
+            pattern.matches(item.path())
+          } else {
+            true
+          }
+        })
         .map(|item| {
           json!({
             "path": item.path(),

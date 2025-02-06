@@ -1,5 +1,5 @@
 use a2a_core::{do_action, utils::uuid_v7};
-use a2a_types::{Action, EMailAction, LlmAction, NotifyAction, SqlAction, Value};
+use a2a_types::{Action, EMailAction, FileAction, LlmAction, NotifyAction, SqlAction, Value};
 use rustls::crypto::aws_lc_rs;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -115,6 +115,21 @@ async fn test_email() {
   };
 
   match do_action(Action::EMail(action)).await {
+    Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+    Err(err) => eprintln!("{}", err),
+  }
+}
+
+#[tokio::test]
+async fn test_fs_list() {
+  setup_logging();
+  let action = FileAction {
+    method: "LIST".to_string(),
+    path: "/home/jia/repo/a2a-rs/**/Cargo.toml".to_string(),
+    ..Default::default()
+  };
+
+  match do_action(Action::File(action)).await {
     Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
     Err(err) => eprintln!("{}", err),
   }
