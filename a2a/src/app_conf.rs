@@ -43,9 +43,9 @@ pub struct Coder {
   pub user: String,
 
   /// name of the file to save the generated code, can have placeholder {provider} and {model},
-  /// default is to print to stdout
+  /// default is to `{user_prompt_name}.{provider}.{model}.js` when user prompt is a file, or stdout when user prompt is just some text
   #[clap(short, long)]
-  pub file: Option<String>,
+  pub out_file: Option<String>,
 
   /// system prompt to write code, default use embedded system prompt
   #[clap(short, long)]

@@ -82,10 +82,14 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
     .models
     .iter()
     .map(|(provider, model)| {
-      let output = arg.file.as_ref().or(default_output_name.as_ref()).map(|f| {
-        f.replace("{provider}", &provider)
-          .replace("{model}", &model)
-      });
+      let output = arg
+        .out_file
+        .as_ref()
+        .or(default_output_name.as_ref())
+        .map(|f| {
+          f.replace("{provider}", &provider)
+            .replace("{model}", &model)
+        });
 
       WriteCode {
         system: system.clone(),
