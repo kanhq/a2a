@@ -64,7 +64,7 @@ type SqlResult = any[];
 /** FileAction is used to do operation on local or remote file system */
 type FileAction = {
   /** the action to perform
-   * - READ : read the file content
+   * - READ : read the file content, the file with well-known mimetype like json, xml, csv, excel, etc will be parsed to object after read
    * - WRITE : write the file content
    * - APPEND : append the file content
    * - LIST : list the file in the directory, the path can have `**` to match all sub directories

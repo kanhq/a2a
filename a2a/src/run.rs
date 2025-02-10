@@ -8,14 +8,18 @@ use quickjs_rusty::{
   Arguments, Context, OwnedJsValue,
 };
 use tokio::runtime::Handle;
-use tracing::{debug, info};
+use tracing::{debug, info, trace};
 
 use crate::{app_conf::Runner, config_loader::load_conf_dir};
 
 pub(crate) async fn execute(arg: &Runner) -> Result<Value> {
+  if let Some(work_dir) = &arg.work_dir {
+    std::env::set_current_dir(work_dir)?;
+  }
+  info!(script=%arg.file, work_dir=?arg.work_dir, "execute");
   let conf = load_conf_dir(&arg.conf_dir)?;
+  debug!("config: {}", serde_json::to_string_pretty(&conf)?);
   let clean_up = arg.clean.clone();
-  info!(script=%arg.file, "execute script");
   execute_js_file(&arg.file, &conf, &Value::Null, clean_up).await
 }
 pub(crate) async fn execute_js_file(
@@ -92,8 +96,13 @@ fn do_action_quickjs(args: Arguments) -> Result<OwnedJsValue, String> {
 
   let action = from_js(arg.context(), &arg).map_err(|err| format!("invalid js action: {}", err))?;
 
+  trace!(
+    action = serde_json::to_string_pretty(&action).map_err(|err| err.to_string())?,
+    "do_action_quickjs"
+  );
+
   let action: Action =
-    serde_json::from_value(action).map_err(|err| format!("invalid action: {}", err))?;
+    serde_json::from_value(action).map_err(|err| format!("invalid action: {} ", err))?;
 
   let res = tokio::task::block_in_place(move || {
     Handle::current().block_on(async move { do_action(action).await })
