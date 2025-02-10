@@ -3,7 +3,7 @@ use std::path::Path;
 use a2a_tojson::to_json;
 use anyhow::{bail, Result};
 use serde_json::{Map, Value};
-use tracing::{trace, warn};
+use tracing::{debug, trace, warn};
 
 pub(crate) fn load_conf_dir(conf_dir: &Path) -> Result<Value> {
   if !conf_dir.exists() {
@@ -13,12 +13,19 @@ pub(crate) fn load_conf_dir(conf_dir: &Path) -> Result<Value> {
   if conf_dir.is_file() {
     return load_configs(conf_dir.to_str().unwrap_or_default());
   } else {
-    let pattern = conf_dir.join("**/*.{json,yaml,ini,env}");
-    load_configs(pattern.to_str().unwrap_or_default())
+    let pattern = conf_dir.join("**/*.*");
+    // replace / with \ on windows
+    if cfg!(windows) {
+      let pattern = pattern.to_string_lossy().replace("/", "\\");
+      load_configs(&pattern)
+    } else {
+      load_configs(pattern.to_str().unwrap_or_default())
+    }
   }
 }
 
 pub(crate) fn load_configs(pattern: &str) -> Result<Value> {
+  debug!(?pattern, "load config dir");
   let walker = glob::glob(pattern)?;
 
   let mut conf = Default::default();
@@ -30,6 +37,10 @@ pub(crate) fn load_configs(pattern: &str) -> Result<Value> {
         trace!(?file_name, "load config");
         let ext = file_name.extension().unwrap_or_default();
         let mimetype = ext_to_mime(ext.to_str().unwrap_or_default());
+        if mimetype.is_empty() {
+          debug!(?file_name, "unsupported file type");
+          continue;
+        }
         if let Err(err) = merge_config_file(&mut conf, file_name, mimetype) {
           warn!(?file_name, mimetype, ?err, "load config failed");
         }

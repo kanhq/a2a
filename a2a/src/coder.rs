@@ -127,6 +127,8 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
           file: output.clone(),
           conf_dir: conf_dir.clone(),
           clean: arg.clean.clone(),
+          work_dir: None,
+          project_mode: None,
         };
         r.run_result = run::execute(&runner).await.ok();
       }

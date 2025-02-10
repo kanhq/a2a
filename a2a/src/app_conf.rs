@@ -32,6 +32,15 @@ pub struct Runner {
   /// the script file to be executed
   pub file: String,
 
+  /// the working directory to run the script
+  /// default is the current directory when '-p' is not set or the parent directory of the script file when '-p' is set
+  #[clap(long, short)]
+  pub work_dir: Option<String>,
+
+  /// is project mode, script file will be executed in the parent directory of the script file
+  #[clap(long, short, action=ArgAction::SetTrue)]
+  pub project_mode: Option<bool>,
+
   /// clean up script after run, will be executed after each run
   #[clap(long)]
   pub clean: Option<String>,
@@ -165,7 +174,16 @@ pub fn app_conf() -> &'static AppConf {
         }
       }
       Commands::Run(ref mut runner) => {
-        runner.conf_dir = runner.conf_dir.canonicalize().unwrap_or_default();
+        if runner.project_mode.unwrap_or(false) {
+          let script_path = PathBuf::from(&runner.file);
+          runner.work_dir = script_path
+            .parent()
+            .map(|p| p.to_string_lossy().to_string());
+          runner.file = script_path
+            .file_name()
+            .map(|f| f.to_string_lossy().to_string())
+            .unwrap_or_default();
+        }
       }
       Commands::Serve(ref mut serve) => {
         serve.root_path = serve

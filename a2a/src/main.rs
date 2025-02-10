@@ -13,6 +13,7 @@ mod serve;
 fn setup_logging() {
   let filter = EnvFilter::from_default_env();
   let log_writer = std::io::stderr;
+  let mut ansi_color = true;
   if let Some(log_base_dir) = std::env::var("A2A_LOG_BASE_DIR")
     .ok()
     .filter(|s| !s.is_empty())
@@ -26,11 +27,12 @@ fn setup_logging() {
       .build(&log_base_dir)
       .expect("initializing rolling file ");
     log_writer.and(log_file);
+    ansi_color = false;
   }
 
   tracing_subscriber::fmt()
     .with_env_filter(filter)
-    .with_ansi(false)
+    .with_ansi(ansi_color)
     .with_level(true)
     .with_writer(log_writer)
     .init();
