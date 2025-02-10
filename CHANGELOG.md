@@ -1,10 +1,15 @@
 # ChangeLog
 
-## [v0.0.10]
+## [v0.0.10] - 2025-02-10
 
 ### Add
 
 - 'list' in file action now supports a wildcard pattern
+- 'a2a run' now can cwd to a working directory
+
+### Fix
+
+- some minor bugs
 
 ### Modified
 
