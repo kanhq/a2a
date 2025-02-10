@@ -6,6 +6,7 @@ use sqlx::{
   sqlite::{SqliteArguments, SqliteConnectOptions, SqliteRow},
   Arguments, Column, Connection, Row, SqliteConnection, TypeInfo,
 };
+use tracing::debug;
 
 use super::array_dim;
 
@@ -55,6 +56,11 @@ pub(crate) async fn do_sql_action(action: SqlAction) -> Result<SqlActionResult> 
 fn row_to_value(row: SqliteRow) -> Value {
   let mut val = serde_json::Map::new();
   row.columns().iter().enumerate().for_each(|(i, col)| {
+    debug!(
+      col_name = col.name(),
+      col_type = col.type_info().name(),
+      "Processing column"
+    );
     let value = match col.type_info().name() {
       "BOOLEAN" => Value::Bool(row.get(i)),
       "TEXT" | "VARCHAR" | "CHAR" | "NAME" | "CITEXT" => Value::String(row.get(i)),
@@ -70,7 +76,21 @@ fn row_to_value(row: SqliteRow) -> Value {
         let data: Vec<u8> = row.get(i);
         bytes_to_json(bytes::Bytes::from(data), "", None).unwrap_or(Value::Null)
       }
-      _ => Value::String(row.get(i)),
+      _ => {
+        if let Ok(s) = row.try_get::<String, usize>(i) {
+          Value::String(s)
+        } else if let Ok(n) = row.try_get::<i64, usize>(i) {
+          json!(n)
+        } else if let Ok(n) = row.try_get::<f64, usize>(i) {
+          json!(n)
+        } else if let Ok(b) = row.try_get::<bool, usize>(i) {
+          Value::Bool(b)
+        } else if let Ok(data) = row.try_get::<Vec<u8>, usize>(i) {
+          bytes_to_json(bytes::Bytes::from(data), "", None).unwrap_or(Value::Null)
+        } else {
+          Value::Null
+        }
+      }
     };
     val.insert(col.name().to_string(), value);
   });
