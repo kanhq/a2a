@@ -28,7 +28,7 @@ jobs:
             os: windows-latest
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checout
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
