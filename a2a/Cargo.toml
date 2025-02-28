@@ -18,6 +18,8 @@ glob.workspace = true
 a2a_tojson = { path = "../a2a_tojson" }
 a2a_core = { path = "../a2a_core" }
 a2a_types = { path = "../a2a_types" }
+a2a_nodejs = { path = "../bindings/nodejs" }
+a2a_py = { path = "../bindings/python" }
 reqwest.workspace = true
 time.workspace = true
 dotenvy = "0.15"
