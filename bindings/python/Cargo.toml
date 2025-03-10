@@ -5,7 +5,7 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-name = "a2a"
+name = "_a2apy"
 crate-type = ["cdylib"]
 
 [dependencies]
