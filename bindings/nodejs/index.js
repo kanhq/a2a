@@ -1,5 +1,5 @@
 
-import { doAction, loadConfig } from './a2a'
+const { doAction, loadConfig } = require('./a2a')
 
 
 /**
@@ -18,4 +18,9 @@ async function a2a(confDir, codeFile, params) {
   return await a2aModule.main(config, params)
 }
 
-export { a2a, doAction, loadConfig }
+//export { a2a, doAction, loadConfig }
+
+
+module.exports.a2a = a2a
+module.exports.doAction = doAction
+module.exports.loadConfig = loadConfig
