@@ -1,5 +1,11 @@
 # ChangeLog
 
+# [v0.1.11] - 2025-03-10
+
+### Fix
+
+- some compile flags adjustments
+
 ## [v0.1.10] - 2025-02-10
 
 ### Add
