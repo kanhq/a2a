@@ -11,6 +11,7 @@ use tracing::{debug, info, trace, warn};
 use crate::llm_action;
 
 mod url;
+pub mod web_search_action;
 
 use url::{CrawlUrl, UrlPattern};
 
@@ -83,6 +84,10 @@ async fn do_crawl(
   let pure_html = include_str!("pure_html.js");
   let crawl_system = include_str!("crawl_system.md");
 
+  let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 Edg/134.0.0.0";
+
+  tab.set_user_agent(user_agent, None, None)?;
+
   tab.navigate_to(url.url())?;
 
   //tab.wait_until_navigated()?;
@@ -100,7 +105,7 @@ async fn do_crawl(
   // debug!(?url, "get content done");
   // debug!("{}", full);
 
-  let args = vec![json!(url.selector())];
+  let args = vec![json!(url.format())];
   let body = tab.find_element(url.selector())?;
 
   debug!(?url, "element found");

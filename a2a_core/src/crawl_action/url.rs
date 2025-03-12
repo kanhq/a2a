@@ -7,10 +7,11 @@ use serde::{Deserialize, Serialize};
 #[serde(untagged)]
 pub(crate) enum CrawlUrl {
   Text(String),
-  WithSelector {
+  WithOption {
     url: String,
     selector: Option<String>,
     wait: Option<String>,
+    text: Option<bool>,
   },
   Empty,
 }
@@ -19,10 +20,11 @@ impl CrawlUrl {
   pub fn url(&self) -> &str {
     match self {
       CrawlUrl::Text(t) => t.as_str(),
-      CrawlUrl::WithSelector {
+      CrawlUrl::WithOption {
         url,
         selector: _,
         wait: _,
+        text: _,
       } => url.as_str(),
       CrawlUrl::Empty => "",
     }
@@ -30,10 +32,11 @@ impl CrawlUrl {
 
   pub fn selector(&self) -> &str {
     match self {
-      CrawlUrl::WithSelector {
+      CrawlUrl::WithOption {
         url: _,
         selector,
         wait: _,
+        text: _,
       } => selector.as_ref().map(|s| s.as_str()).unwrap_or("body"),
       _ => "body",
     }
@@ -41,12 +44,28 @@ impl CrawlUrl {
 
   pub fn wait(&self) -> &str {
     match self {
-      CrawlUrl::WithSelector {
+      CrawlUrl::WithOption {
         url: _,
         selector: _,
         wait,
+        text: _,
       } => wait.as_ref().map(|s| s.as_str()).unwrap_or(""),
       _ => "",
+    }
+  }
+
+  pub fn format(&self) -> &str {
+    match self {
+      CrawlUrl::WithOption {
+        url: _,
+        selector: _,
+        wait: _,
+        text,
+      } => match text.unwrap_or(false) {
+        true => "text",
+        false => "html",
+      },
+      _ => "html",
     }
   }
 }

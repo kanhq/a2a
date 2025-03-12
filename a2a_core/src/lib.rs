@@ -1,5 +1,6 @@
 use a2a_types::Action;
 use anyhow::Result;
+use crawl_action::web_search_action;
 use serde_json::Value;
 use tracing::{info, trace};
 use utils::uuid_v7;
@@ -32,6 +33,7 @@ pub async fn do_action(action: Action) -> Result<Value> {
     Action::Notify(a) => notify_action::do_action(a).await.map(Into::into),
     Action::Enc(a) => enc_action::do_action(a).map(Into::into),
     Action::Crawl(a) => crawl_action::do_action(a).await.map(Into::into),
+    Action::WebSearch(a) => web_search_action::do_action(a).await.map(Into::into),
   };
 
   if tracing::enabled!(tracing::Level::TRACE) {

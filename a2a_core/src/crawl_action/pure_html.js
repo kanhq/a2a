@@ -1,4 +1,4 @@
-function cleanup(parent, format) {
+function cleanup(format) {
   const elementsToRemove = [
     'script',
     'style',
@@ -46,52 +46,25 @@ function cleanup(parent, format) {
     'target'
   ]
 
-  if (!parent) {
-    parent = 'body'
-  }
+  const parent = this.cloneNode(true)
 
-  const parentNodes = document.querySelectorAll(parent);
+  const elementTree = parent.querySelectorAll('*')
 
-  if (parentNodes.length === 0) {
-    return ''
-  }
-
-  const rows = []
-
-  for (let i = 0; i < parentNodes.length; i++) {
-    let parent = parentNodes[i]
-    if (!parent) {
-      continue
+  elementTree.forEach((element) => {
+    if (elementsToRemove.includes(element.tagName.toLowerCase())) {
+      element.remove()
+      return
     }
-
-    parent = parent.cloneNode(true)
-
-    const elementTree = parent.querySelectorAll('*')
-
-    elementTree.forEach((element) => {
-
-      if (element.innerText.trim() === '') {
-        element.remove()
-        return
+    Array.from(element.attributes).forEach((attr) => {
+      if (attributesToRemove.some((a) => attr.name.startsWith(a))) {
+        element.removeAttribute(attr.name)
       }
-
-      if (elementsToRemove.includes(element.tagName.toLowerCase())) {
-        element.remove()
-        return
-      }
-
-      Array.from(element.attributes).forEach((attr) => {
-        if (attributesToRemove.some((a) => attr.name.startsWith(a))) {
-          element.removeAttribute(attr.name)
-        }
-      })
     })
-    if (format === 'text' && parent.textContent) {
-      rows.push(parent.textContent)
-    } else {
-      rows.push(parent.innerHTML)
-    }
-  }
+  })
 
-  return rows.join('\n')
+  if (format === 'text') {
+    return parent.innerText
+  } else {
+    return parent.innerHTML
+  }
 }

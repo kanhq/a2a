@@ -178,11 +178,41 @@ pub struct CrawlAction {
   /// - a array of string, the fields to extract, each field will be treated as string type
   pub fields: Option<Value>,
 }
-
 pub type CrawlActionResult = Value;
 
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct WebSearchAction {
+  // common fields
+  pub override_result_mimetype: Option<String>,
+
+  // web search fields
+  /// the browser options used to crawl, default to find the browser from the environment
+  /// see https://docs.rs/headless_chrome/latest/headless_chrome/browser/struct.LaunchOptions.html for more details
+  pub browser: Option<Value>,
+  /// keyword to search
+  pub query: String,
+  /// the search provider, may be a provider name or a url, when a url is used, the ${query} of url will be replaced with the query
+  pub provider: String,
+  /// the search provider options, will be passed to the provider as query params
+  pub options: Option<Value>,
+  /// how many pages to search, default is 3
+  pub pages: Option<u32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct WebSearchResult {
+  pub url: String,
+  pub title: String,
+  pub body: String,
+  pub icon: String,
+}
+
+pub type WebSearchActionResult = Vec<WebSearchResult>;
+
 #[derive(Serialize, Deserialize, Clone)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Action {
   Http(HttpAction),
   File(FileAction),
@@ -193,6 +223,7 @@ pub enum Action {
   Notify(NotifyAction),
   Enc(EncAction),
   Crawl(CrawlAction),
+  WebSearch(WebSearchAction),
 }
 
 struct FormatterWriter<'a, 'b> {
@@ -235,6 +266,7 @@ impl Action {
       Action::Notify(_) => "notify",
       Action::Enc(_) => "enc",
       Action::Crawl(_) => "crawl",
+      Action::WebSearch(_) => "web_search",
     }
   }
 }
