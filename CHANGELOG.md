@@ -1,5 +1,12 @@
 # ChangeLog
 
+# [v0.1.12] - 2025-03-12
+
+### Add
+
+- `web_search` action used to search the web
+- enable write code to search from the web to collect information, then write report by llm
+
 # [v0.1.11] - 2025-03-10
 
 ### Fix
