@@ -8,7 +8,9 @@ type ActionKind =
   | "llm"
   | "notify"
   | "enc"
-  | "crawl";
+  | "crawl"
+  | "web_search"
+  ;
 
 /** The base action type, other types will inherit from it */
 type BaseAction = {
@@ -261,8 +263,36 @@ type CrawlAction = {
 // crawl action result is a dictionary of the url and the result
 type CrawlResult = any;
 
+/** WebSearchAction is used to search the web 
+ * 
+ * the search is executed on the headless browser,
+ */
+type WebSearchAction = {
+  // the browser configuration used to search
+  browser: any;
+  // anything to search
+  query: string;
+  // search engine to use
+  provider: "bing" | "baidu";
+  // how many results to return, default is 3
+  pages: number;
+} & BaseAction;
 
-export type A2Action = HttpAction | SqlAction | FileAction | EMailAction | ShellAction | LlmAction | NotifyAction | EncAction | CrawlAction;
+/**
+ * WebSearchResult is the result of the web search
+ * 
+ * the result is a list of the search result
+ */
+type WebSearchResult = {
+  url: string;
+  title: string;
+  icon: string;
+  body: string;
+}[];
+
+
+export type A2Action = HttpAction | SqlAction | FileAction | EMailAction | ShellAction | LlmAction | NotifyAction | EncAction | CrawlAction | WebSearchAction;
+
 export type ActionResult<T extends A2Action> =
   T extends HttpAction ? HttpResult :
   T extends SqlAction ? SqlResult :
@@ -273,6 +303,7 @@ export type ActionResult<T extends A2Action> =
   T extends NotifyAction ? NotifyResult :
   T extends EncAction ? EncResult :
   T extends CrawlAction ? CrawlResult :
+  T extends WebSearchAction ? WebSearchResult :
   never;
 
 // the function to do action 

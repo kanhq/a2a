@@ -4,9 +4,9 @@
   "sqlite": "sqlite://a2a_test.sqlite3",
   "dbconn": "postgresql://jia:lijia@127.0.0.1:5432/kaccount?sslmode=disable",
   "datasrc": "/home/jia/repo/a2a-rs/a2a/test_scripts/data.csv",
-  "llm01": {
+  "llm": {
     "provider": "vertex-ai",
-    "model": "gemini-2.0-flash-exp",
+    "model": "gemini-2.0-flash-001",
     "url": "https://jiallm.kanhq.com:30443/v1/chat/completions",
     "key": "Bq208q0NdjbCaGnhrjhMphePMQNMeqBEq/33k668/vg="
   },

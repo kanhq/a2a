@@ -228,12 +228,16 @@ async fn test_crawl() {
   let conf = serde_json::from_str::<TestConfig>(config_data).unwrap();
 
   let action = a2a_types::CrawlAction {
-    override_result_mimetype: None,
     browser: Some(json!({
       "path": "/home/jia/tools/chrome/linux-132.0.6834.110/chrome-linux64/chrome",
       //"enable_logging": true,
     })),
-    urls: vec![json!("https://qtf.kanhq.com/qtf/")],
+    urls: vec![json!({
+      "url":"https://www.bing.com/search?q=MCP&ensearch=1",
+      "wait": "#b_results",
+      "selector": "#b_results",
+      "text": true
+    })],
     parallel: Some(1),
     llm: Some(conf.llm.clone()),
     //     fields: Some(json!({
@@ -244,9 +248,33 @@ async fn test_crawl() {
     //   url: string
     // }"#,
     //     })),
-    fields: Some(json!(["name", "url"])),
+    //fields: Some(json!(["name", "url"])),
+    ..Default::default()
   };
   match do_action(Action::Crawl(action)).await {
+    Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+    Err(err) => eprintln!("{}", err),
+  }
+}
+
+#[tokio::test]
+async fn test_web_search() {
+  setup_logging();
+
+  let config_data = include_str!("./config.json");
+  let conf = serde_json::from_str::<TestConfig>(config_data).unwrap();
+
+  let action = a2a_types::WebSearchAction {
+    browser: Some(json!({
+      "path": "/home/jia/tools/chrome/linux-132.0.6834.110/chrome-linux64/chrome",
+      //"enable_logging": true,
+    })),
+    query: "MCP".to_string(),
+    provider: "baidu".to_string(),
+
+    ..Default::default()
+  };
+  match do_action(Action::WebSearch(action)).await {
     Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
     Err(err) => eprintln!("{}", err),
   }
