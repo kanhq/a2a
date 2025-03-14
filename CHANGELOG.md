@@ -1,5 +1,11 @@
 # ChangeLog
 
+# [v0.1.13] - 2025-03-14
+
+### Enhancement
+
+- 'web_search' and 'crawl' add anti bot detection
+
 # [v0.1.12] - 2025-03-12
 
 ### Add
