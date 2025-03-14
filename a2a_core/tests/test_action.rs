@@ -270,7 +270,7 @@ async fn test_web_search() {
       //"enable_logging": true,
     })),
     query: "MCP".to_string(),
-    provider: "baidu".to_string(),
+    provider: "bing".to_string(),
 
     ..Default::default()
   };
