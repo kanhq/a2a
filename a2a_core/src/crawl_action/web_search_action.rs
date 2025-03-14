@@ -15,11 +15,13 @@ struct SearchProvider {
 }
 
 pub async fn do_action(action: WebSearchAction) -> Result<WebSearchActionResult> {
-  let launch_options = action
+  let mut launch_options = action
     .browser
     .clone()
     .and_then(|browser| serde_json::from_value::<SerializableLaunchOptions>(browser).ok())
     .unwrap_or_default();
+
+  launch_options.setup();
 
   let launch_options: LaunchOptions = (&launch_options).into();
 

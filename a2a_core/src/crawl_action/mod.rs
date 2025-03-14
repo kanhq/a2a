@@ -18,10 +18,12 @@ use url::{CrawlUrl, UrlPattern};
 pub async fn do_action(action: CrawlAction) -> Result<CrawlActionResult> {
   let llm = action.llm.map(|v| Arc::new(v));
 
-  let launch_options = action
+  let mut launch_options = action
     .browser
     .and_then(|browser| serde_json::from_value::<SerializableLaunchOptions>(browser).ok())
     .unwrap_or_default();
+
+  launch_options.setup();
 
   let launch_options: LaunchOptions = (&launch_options).into();
 
@@ -210,8 +212,10 @@ struct SerializableLaunchOptions {
   pub path: Option<PathBuf>,
   pub user_data_dir: Option<PathBuf>,
   pub extensions: Vec<OsString>,
-  pub args: Vec<OsString>,
-  pub ignore_default_args: Vec<OsString>,
+  pub args: Vec<String>,
+  pub _args: Vec<OsString>,
+  pub ignore_default_args: Vec<String>,
+  _ignore_default_args: Vec<OsString>,
   pub disable_default_args: bool,
   pub idle_browser_timeout: u64,
   pub process_envs: Option<HashMap<String, String>>,
@@ -235,10 +239,29 @@ impl Default for SerializableLaunchOptions {
       extensions: Vec::new(),
       process_envs: None,
       args: Vec::new(),
+      _args: Vec::new(),
       ignore_default_args: Vec::new(),
+      _ignore_default_args: Vec::new(),
       disable_default_args: false,
       proxy_server: None,
     }
+  }
+}
+
+impl SerializableLaunchOptions {
+  pub fn setup(&mut self) {
+    self
+      .ignore_default_args
+      .append(&mut vec!["--enable-automation".to_string()]);
+    self.args.append(&mut vec![
+      "--disable-blink-features=AutomationControlled".to_string()
+    ]);
+    self._ignore_default_args = self
+      .ignore_default_args
+      .iter()
+      .map(|s| OsString::from(s))
+      .collect();
+    self._args = self.args.iter().map(|s| OsString::from(s)).collect();
   }
 }
 
@@ -257,9 +280,9 @@ impl<'a> Into<LaunchOptions<'a>> for &'a SerializableLaunchOptions {
       port: self.port,
       ignore_certificate_errors: self.ignore_certificate_errors,
       extensions: self.extensions.iter().map(|s| s.as_os_str()).collect(),
-      args: self.args.iter().map(|s| s.as_os_str()).collect(),
+      args: self._args.iter().map(|s| s.as_os_str()).collect(),
       ignore_default_args: self
-        .ignore_default_args
+        ._ignore_default_args
         .iter()
         .map(|s| s.as_os_str())
         .collect(),
