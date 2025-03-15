@@ -38,10 +38,54 @@ fn setup_logging() {
     .init();
 }
 
+fn setup_env() {
+  let mut conf_files = Vec::new();
+
+  match std::env::consts::OS {
+    "windows" => {
+      // try to load .env file from APPDATA or USERPROFILE
+      conf_files.push(
+        std::env::var("APPDATA")
+          .or(std::env::var("USERPROFILE").map(|s| format!("{}\\AppData\\Roaming", s)))
+          .map(|s| format!("{}\\a2a\\a2a.env", s))
+          .ok(),
+      );
+      conf_files.push(
+        std::env::var("A2A_BASE_DIR")
+          .map(|s| format!("{}\\a2a.env", s))
+          .ok(),
+      );
+    }
+    _ => {
+      // try to load .env file from local config directory
+      std::env::var("HOME")
+        .map(|s| {
+          conf_files.push(Some(format!("{}/.a2a/a2a.env", s)));
+          conf_files.push(Some(format!("{}/.config/a2a/a2a.env", s)));
+        })
+        .unwrap_or_default();
+      conf_files.push(
+        std::env::var("A2A_BASE_DIR")
+          .map(|s| format!("{}/a2a.env", s))
+          .ok(),
+      );
+    }
+  }
+
+  // try to load .env file from A2A_BASE_DIR
+
+  conf_files
+    .into_iter()
+    .filter_map(|s| s)
+    .for_each(|s| dotenvy::from_path_override(&s).unwrap_or_default());
+
+  // try to load .env file from current directory
+  dotenvy::dotenv_override().unwrap_or_default();
+}
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
-  dotenvy::dotenv_override().unwrap_or_default();
-
+  setup_env();
   setup_logging();
 
   let app = app_conf::app_conf();
