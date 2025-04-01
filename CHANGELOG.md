@@ -1,5 +1,14 @@
 # ChangeLog
 
+## [v0.1.14] - 2025-04-01
+
+### Add
+
+- `a2a server` now supports [MCP](https://modelcontextprotocol.io/introduction)
+  - a mcp tool 'a2a_run' can be used to run a2a code
+  - a mcp prompt 'a2a' can be used to tell llm how to use a2a_run
+
+
 # [v0.1.13] - 2025-03-14
 
 ### Enhancement
