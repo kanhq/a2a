@@ -114,6 +114,10 @@ pub struct Serve {
   #[clap(long, default_value = "/admin")]
   pub admin_path: Option<String>,
 
+  /// the service path of mcp
+  #[clap(long, default_value = "/mcp")]
+  pub mcp_path: Option<String>,
+
   #[clap(skip)]
   pub conf_dir_path: PathBuf,
 

@@ -117,24 +117,6 @@ fn do_action_quickjs(args: Arguments) -> Result<OwnedJsValue, String> {
   res
 }
 
-// fn action_runtime() -> &'static tokio::runtime::Runtime {
-//   static ACTION_RUNTIME: OnceLock<Runtime> = OnceLock::new();
-//   ACTION_RUNTIME.get_or_init(|| {
-//     tokio::runtime::Builder::new_multi_thread()
-//       .worker_threads(4)
-//       .enable_all()
-//       .build()
-//       .expect("create action runtime failed")
-//   })
-// }
-
-// fn action_runtime() -> Result<Runtime, String> {
-//   tokio::runtime::Builder::new_current_thread()
-//     .enable_all()
-//     .build()
-//     .map_err(|err| err.to_string())
-// }
-
 mod log {
   use std::{
     panic::RefUnwindSafe,
