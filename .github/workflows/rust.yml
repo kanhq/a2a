@@ -44,7 +44,7 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Build
-        run: make all
+        run: make dist
       - name: Upload
         uses: taiki-e/upload-rust-binary-action@v1
         with:
