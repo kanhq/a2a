@@ -5,13 +5,16 @@ use std::sync::Arc;
 use a2a_types::Value;
 use rmcp::{
   model::{
-    CallToolResult, Content, Implementation, ProtocolVersion, ServerCapabilities, ServerInfo,
+    CallToolResult, Content, GetPromptRequestParam, GetPromptResult, Implementation,
+    ListPromptsResult, PaginatedRequestParam, Prompt, PromptMessage, PromptMessageContent,
+    PromptMessageRole, ProtocolVersion, ServerCapabilities, ServerInfo,
   },
-  tool, ServerHandler,
+  service::RequestContext,
+  tool, RoleServer, ServerHandler,
 };
 pub(crate) use sse_server::{McpState, SseServer, SseServerConfig};
 
-use crate::run::execute_js_code;
+use crate::{coder::default_system_prompt, run::execute_js_code};
 
 use super::AppState;
 
@@ -60,11 +63,49 @@ impl ServerHandler for A2AMcp {
   fn get_info(&self) -> ServerInfo {
     ServerInfo {
       protocol_version: ProtocolVersion::V_2024_11_05,
-      capabilities: ServerCapabilities::builder().enable_tools().build(),
+      capabilities: ServerCapabilities::builder()
+        .enable_tools()
+        .enable_prompts()
+        .build(),
       server_info: Implementation::from_build_env(),
       instructions: Some(
         "This server provides `a2a_run` tools to run a javascript script.".to_string(),
       ),
+    }
+  }
+
+  async fn list_prompts(
+    &self,
+    _request: PaginatedRequestParam,
+    _: RequestContext<RoleServer>,
+  ) -> Result<ListPromptsResult, rmcp::Error> {
+    Ok(ListPromptsResult {
+      next_cursor: None,
+      prompts: vec![Prompt::new(
+        "a2a",
+        Some("Let llm know how to use a2a_run tool"),
+        None,
+      )],
+    })
+  }
+
+  async fn get_prompt(
+    &self,
+    GetPromptRequestParam { name, arguments: _ }: GetPromptRequestParam,
+    _: RequestContext<RoleServer>,
+  ) -> Result<GetPromptResult, rmcp::Error> {
+    match name.as_str() {
+      "a2a" => {
+        let prompt = format!("You should write javascript code to complete the user input, then call tool `a2a_run` to execute the script and process the results, then answer the user based on the result of the script. \n {}", default_system_prompt().to_string());
+        Ok(GetPromptResult {
+          description: None,
+          messages: vec![PromptMessage {
+            role: PromptMessageRole::User,
+            content: PromptMessageContent::text(prompt),
+          }],
+        })
+      }
+      _ => Err(rmcp::Error::invalid_params("prompt not found", None)),
     }
   }
 }
