@@ -1,6 +1,7 @@
 use std::{
   path::{Path, PathBuf},
   str::FromStr,
+  sync::OnceLock,
   task::Poll,
 };
 
@@ -19,6 +20,7 @@ use futures::{Stream, StreamExt, TryStreamExt};
 use pin_project_lite::pin_project;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use time::format_description::well_known::Rfc3339;
 use tokio::{
   io::{AsyncBufRead, AsyncBufReadExt, Lines},
   task::JoinSet,
@@ -48,6 +50,35 @@ pub struct WriteCode {
   pub run_result: Option<Value>,
 }
 
+pub(crate) fn default_system_prompt() -> &'static str {
+  static _SYSTEM_PROMPT: OnceLock<String> = OnceLock::new();
+  _SYSTEM_PROMPT.get_or_init(|| {
+    let mut system = String::new();
+    system.push_str(DEFAULT_SYSTEM_PROMPT);
+    system.push_str("\n");
+
+    let os = std::env::consts::OS;
+    let today = time::OffsetDateTime::now_utc()
+      .format(&Rfc3339)
+      .unwrap_or_default();
+    let shell = match os {
+      "windows" => "powershell",
+      _ => "bash",
+    };
+    system.push_str("## Runtime Information\n");
+    system.push_str(&format!("- OS: {}\n", os));
+    system.push_str(&format!("- Shell: {}\n", shell));
+    system.push_str(&format!("- Today: {}\n", today));
+
+    system.push_str("## API Information\n");
+    system.push_str("```typescript\n");
+    system.push_str(DEFAULT_API_DEFINE);
+    system.push_str("```\n");
+
+    system
+  })
+}
+
 pub(crate) async fn execute(arg: &Coder) -> Result<()> {
   let system = arg
     .system
@@ -58,10 +89,7 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
       if arg.no_system.unwrap_or(false) {
         "You are a helper".to_string()
       } else {
-        format!(
-          "{}\n```typescript\n{}\n```",
-          DEFAULT_SYSTEM_PROMPT, DEFAULT_API_DEFINE
-        )
+        default_system_prompt().to_string()
       }
     });
 

@@ -90,6 +90,7 @@ impl SearchProvider {
   pub async fn search(&self, browser: Browser, pages: usize) -> Result<Vec<WebSearchResult>> {
     let tab = browser.new_tab()?;
     tab.set_user_agent(USER_AGENT, None, None)?;
+    debug!(name = self.name, url = self.url, "start search");
     tab.navigate_to(&self.url)?;
     tab.wait_until_navigated()?;
     let page_tabs = tab

@@ -35,3 +35,5 @@ axum-streams = { version = "0.20", features = ["text"] }
 axum-extra = { version = "0.10", features = ["multipart"] }
 tempfile = "3"
 rand.workspace = true
+rmcp = { version = "0.1.5", features = ["transport-sse-server"] }
+tokio-stream = "0.1.17"
