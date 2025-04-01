@@ -45,6 +45,4 @@ lto = "fat"
 
 [profile.release-dev]
 inherits = "release"
-strip = true
-opt-level = "z"      # Optimize for size.
-lto = false
+lto = "off"
