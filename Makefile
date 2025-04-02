@@ -2,14 +2,16 @@ TARGET_DIR=$(shell cargo metadata --no-deps --format-version 1  | jq -r ".target
 CURRENT_VERSION=$(shell cargo metadata --no-deps --format-version 1  | jq -r ".packages[0].version")
 EXE_EXT=
 SO_EXT=.so
+SO_PREFIX=lib
 ifeq ($(shell uname -s),"Windows_NT")
 EXE_EXT=.exe
 SO_EXT=.dll
+SO_PREFIX=
 endif
 
 BINARY_NAME=a2a${EXE_EXT}
-NODEJS_BINARY_NAME=liba2a_nodejs${SO_EXT}
-PYTHON_BINARY_NAME=lib_a2apy${SO_EXT}
+NODEJS_BINARY_NAME=${SO_PREFIX}a2a_nodejs${SO_EXT}
+PYTHON_BINARY_NAME=${SO_PREFIX}_a2apy${SO_EXT}
 
 local_a2a: 
 	cargo build --release --bin a2a
