@@ -43,11 +43,10 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Build
-        run: make dist
+      # - name: Build
+      #   run: make dist
       - name: Upload
         uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: a2a
-          include: dist/python,dist/nodejs
           token: ${{ secrets.GITHUB_TOKEN }}
