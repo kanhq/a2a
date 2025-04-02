@@ -49,5 +49,5 @@ jobs:
         uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: a2a
-          include: dist/python, dist/nodejs
+          include: dist/python,dist/nodejs
           token: ${{ secrets.GITHUB_TOKEN }}
