@@ -243,7 +243,7 @@ type CrawlURL = {
  */
 type CrawlAction = {
   // the browser configuration used to crawl
-  browser: any;
+  browser?: any;
   // the urls to crawl, use one crawl action with multiple urls is preferred
   urls: string[] | CrawlURL[];
   // the number of browser to run in parallel
@@ -265,14 +265,14 @@ type CrawlResult = any;
 
 /** WebSearchAction is used to search the web 
  * 
- * the search is executed on the headless browser,
+ * the search is executed on the headless browser, in the results returned by the search, there are web contents that have already been crawled and can be used directly. see `WebSearchResult` for more details.
  */
 type WebSearchAction = {
-  // the browser configuration used to search
-  browser: any;
+  // the browser configuration used to search, default is good enough for most cases
+  browser?: any;
   // anything to search
   query: string;
-  // search engine to use
+  // search engine to use, default is "bing"
   provider: "bing" | "baidu";
   // how many results to return, default is 3
   pages: number;
