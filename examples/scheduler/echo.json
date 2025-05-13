@@ -1,0 +1,25 @@
+
+[
+  {
+    "name": "echo",
+    "crons": [
+      "*/3 * * * * 1-5"
+    ],
+    "command": "echo.js",
+    "env": {
+      "a": "b"
+    }
+  },
+  {
+    "name": "echo",
+    "crons": [
+      "*/3 * * * * *"
+    ],
+    "command": "ls",
+    "args": [
+      "-la",
+      "ddd"
+    ],
+    "cwd": "."
+  }
+]

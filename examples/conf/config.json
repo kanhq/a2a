@@ -1,0 +1,17 @@
+{
+  "pgsql": "postgresql://username:password@127.0.0.1:5432/userDB?sslmode=disable",
+  "mysql": "mysql://username:password@127.0.0.1:3306/userDB",
+  "sqlite": "sqlite://a2a_test.sqlite3",
+  "dbconn": "postgresql://username:password@127.0.0.1:5432/userDB?sslmode=disable",
+  "datasrc": "/home/username/data/data.csv",
+  "llm": {
+    "provider": "vertex-ai",
+    "model": "gemini-2.0-flash-001",
+    "url": "https://api.openai.com/v1/chat/completions",
+    "key": "your-api-key"
+  },
+  "index": "https://fund.eastmoney.com/fund.html",
+  "browser": {
+    "path": "/home/username/tools/chrome/linux-132.0.6834.110/chrome-linux64/chrome"
+  }
+}
