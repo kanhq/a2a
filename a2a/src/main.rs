@@ -7,6 +7,7 @@ use tracing_subscriber::{fmt::writer::MakeWriterExt, EnvFilter};
 mod app_conf;
 mod coder;
 mod config_loader;
+mod init;
 mod run;
 mod serve;
 
@@ -103,6 +104,9 @@ async fn main() -> Result<()> {
     }
     Commands::Scheduler(ref scheduler) => {
       let _ = serve::test_scheduler(scheduler).await?;
+    }
+    Commands::Init(ref init) => {
+      init::init_workdir(init)?;
     }
   }
 

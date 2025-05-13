@@ -7,3 +7,5 @@ Cargo.lock
 *.sqlite3
 log
 dist
+
+dev_tmp

@@ -200,7 +200,7 @@ type Data = {{
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(default)]
-struct SerializableLaunchOptions {
+pub(crate) struct SerializableLaunchOptions {
   pub headless: bool,
   pub devtools: bool,
   pub sandbox: bool,
