@@ -5,7 +5,7 @@ edition.workspace = true
 authors.workspace = true
 
 [dependencies]
-quickjs-rusty = { version = "0.7", features = ["bigint"] }
+quickjs-rusty = { version = "0.9", features = ["bigint"] }
 futures.workspace = true
 tokio.workspace = true
 anyhow.workspace = true
