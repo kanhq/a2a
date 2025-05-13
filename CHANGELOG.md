@@ -1,5 +1,13 @@
 # ChangeLog
 
+## [v0.1.15] - 2025-05-01
+
+### Add
+
+- more examples 
+- more documentation
+- `a2a init` command to initialize a work directory
+
 ## [v0.1.14] - 2025-04-01
 
 ### Add
