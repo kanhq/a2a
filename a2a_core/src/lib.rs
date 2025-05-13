@@ -1,6 +1,7 @@
 use a2a_types::Action;
 use anyhow::Result;
 use crawl_action::web_search_action;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tracing::{info, trace};
 use utils::uuid_v7;
@@ -46,4 +47,40 @@ pub async fn do_action(action: Action) -> Result<Value> {
     }
   }
   r
+}
+
+#[derive(Debug, Serialize, Default, Deserialize)]
+pub(crate) struct EmailAccount {
+  pub imap: email::imap::config::ImapConfig,
+  pub smtp: email::smtp::config::SmtpConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub(crate) struct ActionConnection {
+  pub file_s3: opendal::services::S3Config,
+  pub file_blob: opendal::services::AzblobConfig,
+  pub file_oss: opendal::services::OssConfig,
+  pub file_gcs: opendal::services::GcsConfig,
+  pub file_ftp: opendal::services::FtpConfig,
+
+  pub sql_mysql: String,
+  pub sql_postgres: String,
+  pub sql_sqlite: String,
+
+  pub email_account: EmailAccount,
+
+  pub llm: llm_action::LlmConnection,
+
+  pub browser: crawl_action::SerializableLaunchOptions,
+}
+
+/// get the structure of the default connection
+pub fn default_connection() -> Value {
+  let mut connection = ActionConnection::default();
+  connection.sql_mysql = "mysql://root:password@localhost:3306/db".to_string();
+  connection.sql_postgres = "postgres://root:password@localhost:5432/db".to_string();
+  connection.sql_sqlite = "sqlite://db.sqlite".to_string();
+
+  let connection = serde_json::to_value(connection).unwrap();
+  connection
 }

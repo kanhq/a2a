@@ -19,6 +19,8 @@ pub enum Commands {
   Serve(Serve),
   /// schedule the task
   Scheduler(Scheduler),
+  /// initialize the work directory
+  Init(InitWorkDir),
 }
 
 #[derive(Debug, Args)]
@@ -148,6 +150,13 @@ pub struct Scheduler {
   pub start: Option<String>,
 }
 
+#[derive(Debug, Args)]
+pub struct InitWorkDir {
+  /// the directory to be initialized
+  #[clap(short, long, default_value = ".")]
+  pub dir: PathBuf,
+}
+
 pub fn app_conf() -> &'static AppConf {
   static APP_CONF: OnceLock<AppConf> = OnceLock::new();
   APP_CONF.get_or_init(|| {
@@ -204,6 +213,9 @@ pub fn app_conf() -> &'static AppConf {
       }
       Commands::Scheduler(ref mut scheduler) => {
         scheduler.config = scheduler.config.canonicalize().unwrap_or_default();
+      }
+      Commands::Init(ref mut init) => {
+        init.dir = init.dir.canonicalize().unwrap_or_default();
       }
     }
     app
