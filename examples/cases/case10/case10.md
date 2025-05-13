@@ -1,0 +1,1 @@
+用 conf.llm 指定的大模型，从网络搜索获取素材，然后编写一份关于MCP(Model Context Protocol)在大模型领域使用情况的的研究报告，保存结果为 mcp.md
