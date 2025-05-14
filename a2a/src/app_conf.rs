@@ -1,6 +1,10 @@
 use clap::{ArgAction, Args, Parser, Subcommand};
 
-use std::{path::PathBuf, sync::OnceLock};
+use std::{
+  fs,
+  path::{Path, PathBuf},
+  sync::OnceLock,
+};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -25,23 +29,17 @@ pub enum Commands {
 
 #[derive(Debug, Args)]
 pub struct Runner {
-  /// config dir, will be used to find the config file with any extension of .toml, .yaml, .json, .ini
-  /// all the config files will be merged
-  /// directory will be scanned recursively
-  #[clap(short, long, default_value = "conf")]
+  #[clap(skip)]
   pub conf_dir: PathBuf,
 
   /// the script file to be executed
   pub file: String,
 
   /// the working directory to run the script
-  /// default is the current directory when '-p' is not set or the parent directory of the script file when '-p' is set
+  /// set to '.' to run in the current directory
+  /// default is the [default_work_dir]
   #[clap(long, short)]
   pub work_dir: Option<String>,
-
-  /// is project mode, script file will be executed in the parent directory of the script file
-  #[clap(long, short, action=ArgAction::SetTrue)]
-  pub project_mode: Option<bool>,
 
   /// clean up script after run, will be executed after each run
   #[clap(long)]
@@ -86,9 +84,9 @@ pub struct Coder {
   #[clap(short, long, action=ArgAction::SetTrue)]
   pub run: Option<bool>,
 
-  /// when run, the config to be used
+  /// when run, the work dir to be used
   #[clap(short, long)]
-  pub conf_dir: Option<String>,
+  pub work_dir: Option<String>,
 
   /// clean up script after run, will be executed after each run
   #[clap(long)]
@@ -109,8 +107,8 @@ pub struct Serve {
   /// - api: all js files under this directory will be served as api
   /// - conf: all config files under this directory will be loaded
   /// - scheduler: the scheduler config file, task will be scheduled execution
-  #[clap(short, long, default_value = ".")]
-  pub root: Option<String>,
+  #[clap(short, long)]
+  pub work_dir: Option<String>,
 
   /// the service path of admin api
   #[clap(long, default_value = "/admin")]
@@ -153,8 +151,11 @@ pub struct Scheduler {
 #[derive(Debug, Args)]
 pub struct InitWorkDir {
   /// the directory to be initialized
-  #[clap(short, long, default_value = ".")]
-  pub dir: PathBuf,
+  #[clap(short, long)]
+  pub work_dir: Option<String>,
+
+  #[clap(skip)]
+  pub root_path: PathBuf,
 }
 
 pub fn app_conf() -> &'static AppConf {
@@ -187,24 +188,23 @@ pub fn app_conf() -> &'static AppConf {
         }
       }
       Commands::Run(ref mut runner) => {
-        if runner.project_mode.unwrap_or(false) {
-          let script_path = PathBuf::from(&runner.file);
-          runner.work_dir = script_path
-            .parent()
-            .map(|p| p.to_string_lossy().to_string());
-          runner.file = script_path
-            .file_name()
-            .map(|f| f.to_string_lossy().to_string())
-            .unwrap_or_default();
-        }
+        let work_dir = runner
+          .work_dir
+          .as_ref()
+          .map(|p| PathBuf::from(p))
+          .unwrap_or(default_work_dir());
+        runner.conf_dir = work_dir.join("conf");
       }
       Commands::Serve(ref mut serve) => {
         serve.root_path = serve
-          .root
+          .work_dir
           .as_ref()
-          .ok_or(anyhow::anyhow!("root is required"))
-          .and_then(|p| PathBuf::from(p).canonicalize().map_err(|e| e.into()))
-          .unwrap();
+          .map(|p| PathBuf::from(p))
+          .unwrap_or(default_work_dir());
+
+        fs::create_dir_all(&serve.root_path).unwrap_or_default();
+
+        serve.root_path = serve.root_path.canonicalize().unwrap_or_default();
 
         serve.conf_dir_path = serve.root_path.join("conf");
         serve.api_root_path = serve.root_path.join("api");
@@ -215,9 +215,48 @@ pub fn app_conf() -> &'static AppConf {
         scheduler.config = scheduler.config.canonicalize().unwrap_or_default();
       }
       Commands::Init(ref mut init) => {
-        init.dir = init.dir.canonicalize().unwrap_or_default();
+        init.root_path = init
+          .work_dir
+          .as_ref()
+          .map(|p| PathBuf::from(p))
+          .unwrap_or(default_work_dir());
+        fs::create_dir_all(&init.root_path).unwrap_or_default();
+        init.root_path = init.root_path.canonicalize().unwrap_or_default();
       }
     }
     app
   })
+}
+
+pub(crate) fn join_path<P: AsRef<Path>>(base: P, children: &[&str]) -> PathBuf {
+  let mut p = base.as_ref().to_path_buf();
+  for child in children {
+    p.push(child);
+  }
+  p
+}
+
+/// get the default work directory
+/// - on windows, it will be APPDATA/a2a
+/// - on linux/macos, it will be $HOME/.config/a2a if not root, or /etc/a2a if root
+/// - if A2A_BASE_DIR is set, it will be used as the work directory
+pub(crate) fn default_work_dir() -> PathBuf {
+  if let Some(dir) = std::env::var("A2A_BASE_DIR").ok() {
+    return PathBuf::from(dir);
+  }
+  match std::env::consts::OS {
+    "windows" => std::env::var("APPDATA")
+      .map(|s| PathBuf::from(s).join("a2a"))
+      .unwrap_or_else(|_| PathBuf::from(".")),
+    _ => std::env::var("HOME")
+      .map(PathBuf::from)
+      .map(|base| {
+        if base.ends_with("/root") {
+          PathBuf::from("/etc/a2a")
+        } else {
+          join_path(base, &[".config", "a2a"])
+        }
+      })
+      .unwrap_or_else(|_| PathBuf::from(".")),
+  }
 }

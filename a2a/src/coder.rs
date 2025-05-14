@@ -1,13 +1,12 @@
 use std::{
   path::{Path, PathBuf},
-  str::FromStr,
   sync::OnceLock,
   task::Poll,
 };
 
 use crate::{
   app_conf::{Coder, Runner},
-  run,
+  default_work_dir, run,
 };
 
 use a2a_types::Value;
@@ -144,19 +143,18 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
   }
 
   if arg.run.unwrap_or(false) {
-    let conf_dir = arg
-      .conf_dir
-      .as_ref()
-      .and_then(|d| PathBuf::from_str(d.as_str()).ok())
-      .ok_or(anyhow::anyhow!("invalid conf dir"))?;
     for r in results.iter_mut() {
       if let Some(output) = r.output.as_ref() {
+        let work_dir = arg
+          .work_dir
+          .as_ref()
+          .map(|p| PathBuf::from(p))
+          .unwrap_or(default_work_dir());
         let runner = Runner {
           file: output.clone(),
-          conf_dir: conf_dir.clone(),
           clean: arg.clean.clone(),
-          work_dir: None,
-          project_mode: None,
+          conf_dir: work_dir.join("conf"),
+          work_dir: work_dir.to_str().map(|s| s.to_string()),
         };
         r.run_result = run::execute(&runner).await.ok();
       }
