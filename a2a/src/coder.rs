@@ -61,7 +61,7 @@ pub(crate) fn default_system_prompt() -> &'static str {
       .format(&Rfc3339)
       .unwrap_or_default();
     let shell = match os {
-      "windows" => "powershell",
+      "windows" => "cmd",
       _ => "bash",
     };
     system.push_str("## Runtime Information\n");

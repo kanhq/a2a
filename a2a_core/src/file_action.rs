@@ -44,7 +44,7 @@ pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
     }
   }
 
-  let (schema, path) = split_schema_path(&action.path);
+  let (schema, mut path) = split_schema_path(&action.path);
   let scheme = opendal::Scheme::from_str(schema)?;
   let mut options = action
     .connection
@@ -58,8 +58,12 @@ pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
 
   if let Scheme::Fs = scheme {
     if !options.contains_key("root") {
-      if path.starts_with("/") || path.contains(":\\") {
+      if path.starts_with("/") {
         options.insert("root".to_string(), "/".to_string());
+      } else if path.contains(":\\") {
+        let (driver, p) = path.split_at(3);
+        options.insert("root".to_string(), format!("{}", driver));
+        path = p.to_string();
       } else {
         options.insert("root".to_string(), ".".to_string());
       }
