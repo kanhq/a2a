@@ -1,5 +1,5 @@
 use anyhow::Result;
-use app_conf::Commands;
+use app_conf::{default_work_dir, Commands};
 use tracing::{info, warn};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{fmt::writer::MakeWriterExt, EnvFilter};
@@ -15,10 +15,7 @@ fn setup_logging() {
   let filter = EnvFilter::from_default_env();
   let log_writer = std::io::stderr;
   let mut ansi_color = true;
-  if let Some(log_base_dir) = std::env::var("A2A_LOG_BASE_DIR")
-    .ok()
-    .filter(|s| !s.is_empty())
-  {
+  if let Some(log_base_dir) = std::env::var("A2A_LOG_DIR").ok().filter(|s| !s.is_empty()) {
     std::fs::create_dir_all(&log_base_dir).unwrap_or_default();
     let log_file = RollingFileAppender::builder()
       .rotation(Rotation::DAILY)
@@ -40,46 +37,9 @@ fn setup_logging() {
 }
 
 fn setup_env() {
-  let mut conf_files = Vec::new();
-
-  match std::env::consts::OS {
-    "windows" => {
-      // try to load .env file from APPDATA or USERPROFILE
-      conf_files.push(
-        std::env::var("APPDATA")
-          .or(std::env::var("USERPROFILE").map(|s| format!("{}\\AppData\\Roaming", s)))
-          .map(|s| format!("{}\\a2a\\a2a.env", s))
-          .ok(),
-      );
-      conf_files.push(
-        std::env::var("A2A_BASE_DIR")
-          .map(|s| format!("{}\\a2a.env", s))
-          .ok(),
-      );
-    }
-    _ => {
-      // try to load .env file from local config directory
-      std::env::var("HOME")
-        .map(|s| {
-          conf_files.push(Some(format!("{}/.a2a/a2a.env", s)));
-          conf_files.push(Some(format!("{}/.config/a2a/a2a.env", s)));
-        })
-        .unwrap_or_default();
-      conf_files.push(
-        std::env::var("A2A_BASE_DIR")
-          .map(|s| format!("{}/a2a.env", s))
-          .ok(),
-      );
-    }
-  }
-
-  // try to load .env file from A2A_BASE_DIR
-
-  conf_files
-    .into_iter()
-    .filter_map(|s| s)
-    .for_each(|s| dotenvy::from_path_override(&s).unwrap_or_default());
-
+  let user_env = default_work_dir().join("a2a.env");
+  // try to load user specified env file
+  dotenvy::from_path_override(user_env).unwrap_or_default();
   // try to load .env file from current directory
   dotenvy::dotenv_override().unwrap_or_default();
 }
