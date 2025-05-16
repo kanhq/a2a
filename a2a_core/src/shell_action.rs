@@ -1,10 +1,15 @@
+use std::{arch, os};
+
 use a2a_tojson::bytes_to_json;
 use a2a_types::{ShellAction, ShellActionResult};
 use anyhow::Result;
 
 pub async fn do_action(action: ShellAction) -> Result<ShellActionResult> {
-  let mut cmd = tokio::process::Command::new(&action.command);
+  let program = if cfg!(windows) { "cmd.exe" } else { "sh" };
+  let mut cmd = tokio::process::Command::new(program);
   cmd.kill_on_drop(true);
+  cmd.arg(if cfg!(windows) { "/C" } else { "-c" });
+  cmd.arg(&action.command);
   if let Some(args) = action.args {
     cmd.args(args);
   }
