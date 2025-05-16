@@ -1,5 +1,3 @@
-use std::{arch, os};
-
 use a2a_tojson::bytes_to_json;
 use a2a_types::{ShellAction, ShellActionResult};
 use anyhow::Result;
@@ -19,7 +17,10 @@ pub async fn do_action(action: ShellAction) -> Result<ShellActionResult> {
   if let Some(cwd) = action.cwd {
     cmd.current_dir(cwd);
   }
-  let output = cmd.output().await?;
+  let output = cmd
+    .output()
+    .await
+    .map_err(|e| anyhow::anyhow!("Failed to execute command '{:#?}': {}", cmd, e))?;
   let mimetype = action
     .override_result_mimetype
     .unwrap_or("text/plain".to_string());
