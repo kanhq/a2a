@@ -7,7 +7,7 @@ use tracing::{debug, trace, warn};
 
 pub(crate) fn load_conf_dir(conf_dir: &Path) -> Result<Value> {
   if !conf_dir.exists() {
-    bail!("config directory not found");
+    bail!("config directory '{}' not found", conf_dir.display());
   }
 
   if conf_dir.is_file() {
