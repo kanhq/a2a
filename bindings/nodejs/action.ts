@@ -82,7 +82,9 @@ type FileAction = {
    * - azure blob : blob://container/path/to/file
    */
   path: string;
-  /** the content to write or append */
+  /** the content to write or append, it will be converted internal to the appropriate format based on the file type
+   * so you don't need to worry about the file type, just pass the data you want to write.
+   */
   body?: any;
   options?: {
     /** for excel/csv, whether the first row is header name */
