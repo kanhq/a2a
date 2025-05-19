@@ -1,5 +1,15 @@
 # ChangeLog
 
+## [v0.1.16] - 2025-05-20
+
+### Add
+
+- `file` action now write file as it's format, e.g. our can request llm to [convert 'data.json' to 'data.xlsx'](examples/cases/case11/case11.qwen.qwen-plus-latest.js)
+
+### Improvement
+
+- `shell` now use `cmd` on windows and `sh` on linux to run the command, which is more reliable
+
 ## [v0.1.15] - 2025-05-13
 
 ### Add
