@@ -1,13 +1,16 @@
-
-use crate::{Value, Result};
+use crate::{Result, Value};
 
 pub(crate) fn to_json(input: String, _options: Option<&Value>) -> Result<Value> {
   serde_yml::from_str(&input).map_err(|err| anyhow::anyhow!(err))
 }
 
+pub fn to_mimetype_bytes(input: &Value) -> Result<bytes::Bytes> {
+  serde_yml::to_string(input)
+    .map(|s| bytes::Bytes::from(s))
+    .map_err(|err| anyhow::anyhow!(err))
+}
 
 //use yaml_rust2::{Yaml, YamlLoader};
-
 
 /*
 pub(crate) fn to_json(input: String, _options: Option<&Value>) -> Result<Value> {
@@ -16,7 +19,7 @@ pub(crate) fn to_json(input: String, _options: Option<&Value>) -> Result<Value> 
 
   if docs.len() == 1 {
     docs.into_iter().next()
-      .map(|doc| yaml_to_json(doc)) 
+      .map(|doc| yaml_to_json(doc))
       .ok_or(anyhow::anyhow!("No document found"))
   }else{
     let a: Vec<Value> = docs.into_iter().map(|doc| yaml_to_json(doc)).collect();
@@ -42,5 +45,5 @@ fn yaml_to_json(y : Yaml) -> Value {
     Yaml::Null => Value::Null,
     _ => Value::Null
   }
-} 
+}
 */

@@ -7,10 +7,16 @@ pub async fn do_action(action: ShellAction) -> Result<ShellActionResult> {
   let mut cmd = tokio::process::Command::new(program);
   cmd.kill_on_drop(true);
   cmd.arg(if cfg!(windows) { "/C" } else { "-c" });
-  cmd.arg(&action.command);
+
+  let mut command = action.command.clone();
   if let Some(args) = action.args {
-    cmd.args(args);
+    for arg in args {
+      command.push(' ');
+      command.push_str(&arg);
+    }
   }
+  cmd.arg(command);
+
   if let Some(env) = action.env {
     cmd.envs(env);
   }

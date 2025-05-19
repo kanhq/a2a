@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path, str::FromStr};
 
-use a2a_tojson::bytes_to_json;
+use a2a_tojson::{bytes_to_json, to_mimetype_bytes};
 use a2a_types::{FileAction, FileActionResult};
 use anyhow::{anyhow, Result};
 use opendal::Scheme;
@@ -83,8 +83,11 @@ pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
       bytes_to_json(body, mimetype, None)
     }
     "write" => {
-      if let Some(body) = action.body {
-        let body = body.to_vec();
+      if let Some(input) = action.body.as_ref() {
+        let mimetype = action
+          .override_result_mimetype
+          .unwrap_or(mimetype_from_ext(&path));
+        let body = to_mimetype_bytes(input, mimetype)?;
         op.write(&path, body).await?;
       }
       Ok(serde_json::Value::Null)

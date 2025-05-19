@@ -136,6 +136,42 @@ async fn test_fs_list() {
 }
 
 #[tokio::test]
+async fn test_fs_write() {
+  setup_logging();
+
+  let body = Some(json!({
+    "name": "Helen",
+    "age": 18,
+    "address": {
+      "city": "Beijing",
+      "country": "China"
+    }
+  }));
+
+  let files_to_write = vec![
+    "dev_tmp/a.json",
+    "dev_tmp/a.csv",
+    "dev_tmp/a.html",
+    "dev_tmp/a.txt",
+    "dev_tmp/a.xlsx",
+  ];
+
+  for file in files_to_write {
+    println!("write file: {}", file);
+    let action = FileAction {
+      method: "WRITE".to_string(),
+      path: file.to_string(),
+      body: body.clone(),
+      ..Default::default()
+    };
+    match do_action(Action::File(action)).await {
+      Ok(result) => println!("{}", serde_json::to_string_pretty(&result).unwrap()),
+      Err(err) => eprintln!("{}", err),
+    }
+  }
+}
+
+#[tokio::test]
 async fn test_shell() {
   setup_logging();
   let action = a2a_types::ShellAction {

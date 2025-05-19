@@ -40,7 +40,7 @@ pub struct FileAction {
   // file fields
   pub method: String,
   pub path: String,
-  pub body: Option<Bytes>,
+  pub body: Option<Value>,
   pub connection: Option<Value>,
   // read options
   pub options: Option<Value>,

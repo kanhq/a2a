@@ -28,6 +28,7 @@ mod csv;
 mod data_bytes;
 mod excel;
 mod ini;
+mod json2excel;
 mod ndjson;
 mod utils;
 mod yaml;
@@ -53,6 +54,33 @@ pub fn to_json<S: AsRef<str>>(input: String, mimetype: S, conf: Option<&Value>) 
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     | "application/vnd.ms-excel" => excel::to_json(input, conf),
     _ => Ok(Value::String(input)),
+  }
+}
+
+/// convert JSON to mimetype bytes
+pub fn to_mimetype_bytes<S: AsRef<str>>(input: &Value, mimetype: S) -> Result<bytes::Bytes> {
+  let mimetype = mimetype.as_ref();
+  match mimetype {
+    "text/csv" => csv::to_mimetype_bytes(input),
+    "application/json" => serde_json::to_vec(input)
+      .map(|v| v.into())
+      .map_err(|err| err.into()),
+    "application/ndjson" => ndjson::to_mimetype_bytes(input),
+    "text/yaml" | "application/yaml" | "application/x-yaml" => yaml::to_mimetype_bytes(input),
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    | "application/vnd.ms-excel" => excel::to_mimetype_bytes(input),
+    "text/html" => json2excel::json_to_html(input, "a2a_table")
+      .map(|v| v.into())
+      .map_err(|err| err.into()),
+    _ => {
+      if let Some(text) = input.as_str() {
+        Ok(bytes::Bytes::from(text.as_bytes().to_vec()))
+      } else {
+        serde_json::to_vec(input)
+          .map(|v| v.into())
+          .map_err(|err| err.into())
+      }
+    }
   }
 }
 

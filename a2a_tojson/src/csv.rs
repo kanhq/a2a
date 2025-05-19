@@ -1,3 +1,4 @@
+use crate::json2excel::{is_plain_2d, json_to_csv};
 use crate::utils::json_typed;
 use crate::{Result, Value};
 
@@ -64,4 +65,22 @@ fn to_json_object(mut rdr: csv::Reader<&[u8]>) -> Result<Value> {
     records.push(Value::Object(obj));
   }
   Ok(Value::Array(records))
+}
+
+pub(crate) fn to_mimetype_bytes(input: &Value) -> Result<bytes::Bytes> {
+  if input.is_string() {
+    return Ok(bytes::Bytes::from(input.as_str().unwrap().to_string()));
+  }
+
+  if is_plain_2d(input) {
+    let mut wtr = csv::Writer::from_writer(vec![]);
+    for item in input.as_array().unwrap() {
+      if let Value::Array(arr) = item {
+        wtr.write_record(arr.iter().map(|v| v.to_string()))?;
+      }
+    }
+    return Ok(wtr.into_inner()?.into());
+  }
+
+  json_to_csv(input).map(|s| s.into())
 }

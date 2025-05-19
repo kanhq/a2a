@@ -2,6 +2,8 @@ use a2a_types::Value;
 use anyhow::Result;
 use calamine::{Data, Range, Reader};
 
+use crate::json2excel::{is_plain_2d, json_to_excel};
+
 pub(crate) fn to_json(input: String, options: Option<&Value>) -> Result<Value> {
   // first row is header
   let has_header = options
@@ -90,4 +92,22 @@ fn to_json_object(
   }
 
   Ok(Value::Array(records))
+}
+
+pub(crate) fn to_mimetype_bytes(input: &Value) -> Result<bytes::Bytes> {
+  if input.is_string() {
+    return Ok(bytes::Bytes::from(input.as_str().unwrap().to_string()));
+  }
+
+  if is_plain_2d(input) {
+    let mut wtr = csv::Writer::from_writer(vec![]);
+    for item in input.as_array().unwrap() {
+      if let Value::Array(arr) = item {
+        wtr.write_record(arr.iter().map(|v| v.to_string()))?;
+      }
+    }
+    return Ok(wtr.into_inner()?.into());
+  }
+
+  json_to_excel(input).map(|s| s.into())
 }
