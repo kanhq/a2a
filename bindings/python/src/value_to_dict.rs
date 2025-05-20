@@ -85,10 +85,7 @@ pub(crate) fn value_from_py<'py>(py: Python, value: Bound<'py, PyAny>) -> anyhow
       .map(|m| Value::Object(m));
   }
 
-  Err(anyhow::anyhow!(
-    "Unsupported type {:?}",
-    value.as_ref().get_type()
-  ))
+  Err(anyhow::anyhow!("Unsupported type {:?}", value.get_type()))
 }
 
 pub(crate) struct ValuePy {
