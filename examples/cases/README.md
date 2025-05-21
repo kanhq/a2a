@@ -10,6 +10,7 @@ Here are some example usages of `a2a`, demonstrating how to use `a2a` for differ
 |[case04](case04/case04.md)|LLM Processing|Extract structured data from a given image|
 |[case05](case05/case05.md)|File Processing|Extract specified pages from multiple PDFs and then merge them into a single PDF.|
 |[case07](case07/case07.md)|File Processing|Find files with the specified name in the given directory and its subdirectories|
+|[case09](case09/case09.md)|File Processing|Batch resize images and convert formats|
 |[case11](case11/case11.md)|File Processing|Convert JSON to Excel|
 |[case06](case06/case06.md)|Data Crawling|First get all fund links from the specified page, then extract detailed information of each fund as structured data|
 |[case08](case08/case08.md)|Report Writing|Search the web to collect materials, then write a report|
