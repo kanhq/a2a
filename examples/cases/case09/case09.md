@@ -1,0 +1,1 @@
+Please resize all images in the `images` directory to a maximum width of 1024px, while maintaining their original aspect ratio. Also, convert their format to JPG and output them to the `images_out` directory. If the `images_out` directory does not exist, please create it automatically.
