@@ -1,0 +1,1 @@
+请从所有 `invoice*.pdf` 中抽取第二页, 然后将其合并到 `all_invoices.pdf` 中

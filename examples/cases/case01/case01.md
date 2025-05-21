@@ -1,14 +1,15 @@
-请使用配置中的 'dbconn' 连接数据库, 然后创建一个数据表 'test_users', 包含以下的字段
+Please use the 'dbconn' connection from the configuration to connect to the database.
+Then create a table named 'test_users' with the following fields:
 
-- id: 整数, 主键, 自增
-- name: 字符
-- age: 整数
-- updated_at: 时间戳, 默认当前时间
+- id: INTEGER, PRIMARY KEY, AUTO_INCREMENT
+- name: VARCHAR
+- age: INTEGER
+- updated_at: TIMESTAMP, DEFAULT CURRENT_TIMESTAMP
 
-从配置的 'datasrc' 数据文件连接读取数据，这是一个 CSV 文件, 包含两列 'name' 和 'age'
+Read data from the 'datasrc' data file specified in the configuration, which is a CSV file containing two columns: 'name' and 'age'.
 
-将读取到的数据插入到 'user' 表中
+Insert the read data into the 'test_users' table.
 
-然后在数据表中查询 'age' 在 40 和 50 之间的记录, 作为最终的结果返回
+Then query the table for records where 'age' is between 40 and 50, and return these as the final result.
 
-最后，删除掉数据表 `test_users`
+Finally, delete the `test_users` table.

@@ -1,48 +1,48 @@
-## 检查新邮件
+## Check for New Emails
 
-- 从 'email_save_point' 配置的 JSON 文件中，读取 'lastId' 的值。请注意，它是一个 OSS 文件。
-- 从 'email_account' 配置的账户，获取新邮件。
-- 对获取到的文件，如果其发件人是 'tom@vendor.com', 并且有附件，则将附件中的图片或 PDF 提交给 `OCR` 服务。
+- Read the 'lastId' value from the JSON file configured as 'email_save_point'. Note that this is an OSS file.
+- Retrieve new emails from the account configured as 'email_account'.
+- For the retrieved emails, if the sender is 'tom@vendor.com' and they contain attachments, submit the image or PDF attachments to the `OCR` service.
 
-## 对邮件中的附件进行 OCR
+## Perform OCR on Email Attachments
 
-`OCR` 服务是一个 HTTP restful API，其请求参数如下：
+The `OCR` service is an HTTP RESTful API with the following request parameters:
 
 - method: 'POST'
-- url: 从配置 'ocr_url' 中获取
-- headers: 包含 JSON 格式的 Content-Type, 以及从配置 'ocr_api_key' 中获取的 Authorization
+- url: Obtained from the 'ocr_url' configuration
+- headers: Include JSON-formatted Content-Type and Authorization obtained from the 'ocr_api_key' configuration
 - body: {
-  image: '文件的的 DataURL 表示',
+  image: 'DataURL representation of the file',
   }
 
-## 保存新邮件的 ID
+## Save New Email ID
 
-保存 'lastId' 的值到 'email_save_point' 配置的 JSON 文件中。
+Save the 'lastId' value to the JSON file configured as 'email_save_point'.
 
-## 处理结果
+## Process Results
 
-- 如果 'OCR' 服务返回的结果中包含的 `documentType` 是 'invoice', 调用配置中的 `oa_invoice` 指定的 OA 服务，提交该发票。
-- 如果 'OCR' 服务返回的结果中包含的 `documentType` 是 'receipt', 调用配置中的 `oa_receipt` 指定的 OA 服务，提交该收据。
+- If the `documentType` in the result returned by the `OCR` service is 'invoice', call the OA service specified by `oa_invoice` in the configuration to submit the invoice.
+- If the `documentType` in the result returned by the `OCR` service is 'receipt', call the OA service specified by `oa_receipt` in the configuration to submit the receipt.
 
-## 发送通知
+## Send Notification
 
-处理完成后, 调用配置中 `dingtalk` 指定的钉钉机器人，发送通知。通知的内容根据以下模板进行填充
+After processing, call the DingTalk bot specified by `dingtalk` in the configuration to send a notification. The notification content will be populated according to the following template:
 
 ```markdown
-# {vendor} 新邮件处理完成
+# {vendor} New Email Processing Completed
 
-# 日期: {date}
+# Date: {date}
 
-# 明细
+# Details
 
-- 类型: {documentType} 票号: {sn} 金额: {amount}
+- Type: {documentType} No.: {sn} Amount: {amount}
 ```
 
-其中
+Where:
 
-- `{vendor}` 为邮件中的发件人域名
-- `{date}` 为当前日期
-- `{documentType}` 为 `OCR` 服务返回的结果中的 `documentType`
-- `{sn}` 为 `OCR` 服务返回的结果中的 `invoiceNumber` 或 `receiptNumber`
-- `{amount}` 为 `OCR` 服务返回的结果中的 `amount`
-- 明细可能有多条，每条对应一个 `OCR` 服务返回的结果
+- `{vendor}` is the sender's domain from the email
+- `{date}` is the current date
+- `{documentType}` is the `documentType` from the `OCR` service result
+- `{sn}` is the `invoiceNumber` or `receiptNumber` from the `OCR` service result
+- `{amount}` is the `amount` from the `OCR` service result
+- There may be multiple detail entries, each corresponding to an `OCR` service result.
