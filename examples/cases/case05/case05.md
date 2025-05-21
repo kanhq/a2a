@@ -1,0 +1,1 @@
+Please extract the second page from all `invoice*.pdf` files, and then merge them into `all_invoices.pdf`.
