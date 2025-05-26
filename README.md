@@ -10,7 +10,9 @@ The goal of A2A is to enable non-professional developers to leverage large model
 ## Why A2A?
 
 A2A aims to solve the following problems:
-
+  - **Programming with Smaller Parameters Models**: For small parameters models (<=14B) that can be deployed locally, their programming capabilities are limited, and they might not be able to write correct code. Leveraging A2A's advanced APIs and runtime, these small models can more easily write correct code.
+    - Deploying smaller-parameter large models locally (e.g., QWen3) provides better privacy protection and data security.
+    - When using cloud-based large models, cheaper versions can be utilized for coding (e.g., Gemini Flash, GPT-4o-mini, Haiku), eliminating the need for more expensive models. These models are often faster and offer a better iterative experience.
   - **Code Correctness**: A2A provides a set of advanced APIs that encapsulate common functionalities, avoiding potential issues when large models write code:
       - When programming, large models are limited by context size, making errors more likely as code volume and detail increase.
       - Limited by their training data, large models' knowledge may be outdated, and the code they write might not run in new environments.
