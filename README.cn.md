@@ -25,16 +25,16 @@ A2A 旨在解决以下问题：
 
 参考 [actions](bindings/nodejs/action.ts) 的说明, A2A 提供了一个函数 `doAction`，用于执行一个动作，支持的动作包括
 
-- http: 发送http请求
-- sql: 执行sql语句
-- file: 读写包括本地、对象存储服务、远程文件系统的文件（Thanks [Apache OpenDAL](https://github.com/apache/opendal)）
-- email: 收取和发送邮件
-- shell: 执行shell命令
-- llm: 调用大模型
-- notify: 发送通知
-- enc: 加密和解密
-- crawl: 爬取web内容
-- web_search: 搜索web内容
+- `http`: 发送http请求, GET/POST/PUT/...
+- `sql`: 执行sql语句, 包括查询、插入、更新、删除等, MySQL、PostgreSQL、SQLite
+- `file`: 读写包括本地、对象存储服务(S3/OSS...)、远程文件系统(ftp...)的文件（Thanks [Apache OpenDAL](https://github.com/apache/opendal)）
+- `email`: 收取和发送邮件, IMAP
+- `shell`: 执行shell命令, 会自动组装命令行参数, 并处理输出
+- `llm`: 调用大模型, 调用任何兼容 OpenAI API 的大模型
+- `notify`: 发送通知, 向支持Webhook的服务发送通知(如钉钉、飞书、Slack等)
+- `enc`: 加密和解密, 常用的加解密/编码/哈希算法
+- `crawl`: 爬取web内容, 调用本地浏览器进行爬取
+- `web_search`: 搜索web内容, 通过本地浏览器进行搜索, 并抓取搜索结果
 
 对于一个具体的任务, 大模型会根据需求, 编写业务逻辑代码, 调用这些动作, 最终来完成任务. 
 
