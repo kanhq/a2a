@@ -25,16 +25,16 @@ A2A aims to solve the following problems:
 
 Refer to the instructions in [actions](bindings/nodejs/action.ts). A2A provides a function `doAction` to perform an action. Supported actions include:
 
-  - http: Send HTTP requests
-  - sql: Execute SQL statements
-  - file: Read and write files including local, object storage services, and remote file systems (Thanks [Apache OpenDAL](https://github.com/apache/opendal))
-  - email: Receive and send emails
-  - shell: Execute shell commands
-  - llm: Call large models
-  - notify: Send notifications
-  - enc: Encrypt and decrypt
-  - crawl: Crawl web content
-  - web_search: Search web content
+  - `http`: Send HTTP requests, including GET/POST/PUT/...
+  - `sql`: Execute SQL statements, including queries, inserts, updates, deletes, etc., for MySQL, PostgreSQL, SQLite
+  - `file`: Read and write files including local, object storage services (S3/OSS...), and remote file systems(ftp...) (Thanks [Apache OpenDAL](https://github.com/apache/opendal))
+  - `email`: Receive and send emails, IMAP
+  - `shell`: Execute shell commands, automatically assembling command line parameters and processing output
+  - `llm`: Call large models, for any model compatible with OpenAI API
+  - `notify`: Send notifications, sending notifications to services that support Webhooks (e.g., DingTalk, Feishu, Slack)
+  - `enc`: Encrypt and decrypt, supporting common encryption/encoding/hash algorithms
+  - `crawl`: Crawl web content, use local browser for crawling
+  - `web_search`: Search web content, using local browser to search and scrape search results
 
 For a specific task, the large model will write business logic code based on the requirements, call these actions, and ultimately complete the task.
 
