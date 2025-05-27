@@ -22,6 +22,7 @@ pub struct HttpAction {
   // proxy to use for this request, otherwise use the default proxy, eg HTTP_PROXY from the environment
   pub proxy: Option<String>,
   pub body: Option<Bytes>,
+  pub timeout: Option<f64>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]

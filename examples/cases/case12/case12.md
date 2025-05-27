@@ -1,0 +1,1 @@
+please check the service url in config defined as 'check_url' with timeout of 2 seconds, when it return no 2xx response, notify with `lognotify` FeiShu webhook defined in config
