@@ -192,7 +192,9 @@ pub fn app_conf() -> &'static AppConf {
           .work_dir
           .as_ref()
           .map(|p| PathBuf::from(p))
-          .unwrap_or(default_work_dir());
+          .unwrap_or(default_work_dir())
+          .canonicalize()
+          .unwrap_or_default();
         runner.conf_dir = work_dir.join("conf");
       }
       Commands::Serve(ref mut serve) => {

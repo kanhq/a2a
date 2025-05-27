@@ -1,6 +1,6 @@
 use anyhow::Result;
 use app_conf::{default_work_dir, Commands};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{fmt::writer::MakeWriterExt, EnvFilter};
 
@@ -50,6 +50,10 @@ async fn main() -> Result<()> {
   setup_logging();
 
   let app = app_conf::app_conf();
+
+  // log current run dir
+  let pwd = std::env::current_dir()?;
+  debug!(?pwd, "current run dir");
 
   match app.command {
     Commands::Coder(ref coder) => {
