@@ -1,5 +1,7 @@
 use a2a_types::{HttpAction, HttpActionResult};
 use anyhow::Result;
+use bytes::Bytes;
+use tokio::time::timeout;
 
 pub async fn do_action(action: HttpAction) -> Result<HttpActionResult> {
   let mut client = reqwest::Client::builder();
@@ -12,11 +14,12 @@ pub async fn do_action(action: HttpAction) -> Result<HttpActionResult> {
 
   let client = client.build()?;
 
+  let read_timeout = action.timeout.clone();
   let request = to_request(action)?;
 
   let response = client.execute(request).await?;
 
-  to_http_action_result(response, override_result_mimetype).await
+  to_http_action_result(response, override_result_mimetype, read_timeout).await
 }
 
 fn to_request(action: HttpAction) -> Result<reqwest::Request> {
@@ -38,6 +41,7 @@ fn to_request(action: HttpAction) -> Result<reqwest::Request> {
 async fn to_http_action_result(
   response: reqwest::Response,
   override_mimetype: Option<String>,
+  read_timeout: Option<f64>,
 ) -> Result<HttpActionResult> {
   let status = response.status().as_u16();
 
@@ -57,7 +61,16 @@ async fn to_http_action_result(
     })
     .unwrap_or_default();
 
-  let body = response.bytes().await?;
+  let read_timeout = read_timeout.unwrap_or(0.0);
+
+  let body = if read_timeout > 0.0 {
+    let read_timeout = tokio::time::Duration::from_secs_f64(read_timeout);
+    timeout(read_timeout, response.bytes())
+      .await
+      .unwrap_or(Ok(Bytes::new()))
+  } else {
+    response.bytes().await
+  }?;
 
   Ok(HttpActionResult {
     status,

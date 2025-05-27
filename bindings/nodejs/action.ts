@@ -25,6 +25,8 @@ type HttpAction = {
   url: string;
   headers?: Record<string, string>;
   body?: any;
+  // timeout in seconds
+  timeout?: number;
 } & BaseAction;
 
 /** HttpAction result */
