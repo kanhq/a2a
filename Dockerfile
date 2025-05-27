@@ -1,5 +1,11 @@
 FROM rust:latest as builder
 
+
+RUN set -eux; \
+  apt-get update; \
+  apt-get install -y --no-install-recommends \
+  clang
+
 WORKDIR /app
 COPY . /app
 COPY etc/cargo/config.toml /root/.cargo/config.toml

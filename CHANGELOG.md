@@ -1,5 +1,12 @@
 # ChangeLog
 
+## [v0.1.17] - 2025-05-27
+
+### Improvement
+
+- `http` action now supports timeout configuration.[service health check](examples/cases/case12/case12.vertex-ai.gemini-2.5-flash-preview-05-20.js)
+- some minor bug fixes
+
 ## [v0.1.16] - 2025-05-20
 
 ### Add

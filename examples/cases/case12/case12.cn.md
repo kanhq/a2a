@@ -1,0 +1,1 @@
+请检查配置中定义的 'check_url' 服务 URL，超时时间为 2 秒，当返回非 2xx 响应时，通过配置中定义的 `lognotify` FeiShu Webhook 发送通知
