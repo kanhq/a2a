@@ -13,9 +13,6 @@ use tracing::{debug, info, trace};
 use crate::{app_conf::Runner, config_loader::load_conf_dir};
 
 pub(crate) async fn execute(arg: &Runner) -> Result<Value> {
-  if let Some(work_dir) = &arg.work_dir {
-    std::env::set_current_dir(work_dir)?;
-  }
   info!(script=%arg.file, work_dir=?arg.work_dir, "execute");
   let conf = load_conf_dir(&arg.conf_dir)?;
   debug!("config: {}", serde_json::to_string_pretty(&conf)?);
