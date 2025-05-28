@@ -1,5 +1,11 @@
 # ChangeLog
 
+## [v0.1.18] - 2025-06-03
+
+### Improvement
+
+- text input in `file`, `shell` and other actions now supports automatic encoding detection, for example, GBK txt file can be read as well
+
 ## [v0.1.17] - 2025-05-27
 
 ### Improvement
