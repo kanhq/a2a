@@ -26,6 +26,7 @@
 mod config_loader;
 mod csv;
 mod data_bytes;
+mod encoding;
 mod excel;
 mod ini;
 mod json2excel;
@@ -34,6 +35,7 @@ mod utils;
 mod yaml;
 
 use anyhow::Result;
+use encoding::try_to_utf8;
 use serde_json::{json, Value};
 use utils::json_typed;
 
@@ -101,7 +103,7 @@ pub fn bytes_to_json<S: AsRef<str>>(
     | "application/yaml"
     | "application/x-yaml"
     | "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    | "application/vnd.ms-excel" => to_json(String::from_utf8(input.into())?, mimetype, conf),
+    | "application/vnd.ms-excel" => to_json(try_to_utf8(input.into())?, mimetype, conf),
     // else convert to bytes
     _ => {
       let conf = json!({
