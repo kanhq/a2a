@@ -87,5 +87,14 @@ pub(crate) fn init_workdir(wd: &InitWorkDir) -> Result<()> {
     info!(file = ?html_path, "create demo html file");
   }
 
+  // create projects path, will be used to a2a-app projects
+  {
+    let projects_path = join_path(&wd.root_path, &["projects"]);
+    info!(?projects_path, "create projects path");
+    if !projects_path.exists() {
+      std::fs::create_dir_all(&projects_path)?;
+    }
+  }
+
   Ok(())
 }

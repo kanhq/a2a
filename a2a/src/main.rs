@@ -12,7 +12,9 @@ mod run;
 mod serve;
 
 fn setup_logging() {
-  let filter = EnvFilter::from_default_env();
+  let filter = EnvFilter::builder()
+    .with_default_directive("a2a=info".parse().unwrap())
+    .from_env_lossy();
   let log_writer = std::io::stderr;
   let mut ansi_color = true;
   if let Some(log_base_dir) = std::env::var("A2A_LOG_DIR").ok().filter(|s| !s.is_empty()) {

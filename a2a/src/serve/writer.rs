@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tracing::warn;
 
 use super::AppState;
-use crate::coder::{write_code_stream, DEFAULT_SYSTEM_PROMPT};
+use crate::coder::{default_system_prompt, write_code_stream, DEFAULT_SYSTEM_PROMPT};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WriteRequest {
@@ -25,6 +25,14 @@ pub async fn coder_handle(
   State(_state): State<Arc<AppState>>,
   Json(req): Json<WriteRequest>,
 ) -> Response<Body> {
+  if writer_conf().base_url.is_empty() || writer_conf().api_key.is_empty() {
+    return (
+      StatusCode::INTERNAL_SERVER_ERROR,
+      "Server LLM configuration is missing",
+    )
+      .into_response();
+  }
+
   let code = crate::coder::WriteCode {
     system: writer_conf().system.clone(),
     user: req.prompt,
@@ -45,6 +53,15 @@ pub async fn coder_handle(
   }
 }
 
+pub async fn system_prompt_handle(State(_state): State<Arc<AppState>>) -> Response<Body> {
+  let system = default_system_prompt();
+  if system.is_empty() {
+    (StatusCode::NOT_FOUND, DEFAULT_SYSTEM_PROMPT).into_response()
+  } else {
+    (StatusCode::OK, system).into_response()
+  }
+}
+
 struct WriteConf {
   system: String,
   base_url: String,
@@ -54,7 +71,7 @@ struct WriteConf {
 fn writer_conf() -> &'static WriteConf {
   static APP_CONF: OnceLock<WriteConf> = OnceLock::new();
   APP_CONF.get_or_init(|| WriteConf {
-    system: DEFAULT_SYSTEM_PROMPT.to_string(),
+    system: default_system_prompt().to_string(),
     base_url: std::env::var("OPENAI_BASE_URL").unwrap_or_default(),
     api_key: std::env::var("OPENAI_API_KEY").unwrap_or_default(),
   })

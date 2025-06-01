@@ -13,12 +13,17 @@ use tracing::warn;
 
 use crate::serve::AppState;
 
-use super::scheduler::ScheduleEvent;
+use super::{
+  scheduler::ScheduleEvent,
+  workspace::{handle_workspace_operation, WorkspaceOperation},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "kind", content = "data")]
 enum AdminRequest {
   Schedule(ScheduleEvent),
+  ChangeWorkDir(String),
+  Workspace(WorkspaceOperation),
 }
 
 #[axum::debug_handler]
@@ -50,5 +55,26 @@ async fn admin_handler(state: &AppState, _query: Value, body: Value) -> Result<V
       .await
       .map(|_| Value::Null)
       .map_err(Into::into),
+    AdminRequest::ChangeWorkDir(new_path) => {
+      if new_path.is_empty() {
+        return Err(anyhow::anyhow!("New work directory cannot be empty"));
+      }
+      let mut lock = state
+        .root_path
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Failed to lock the root path mutex"))?;
+      *lock = new_path;
+      Ok(Value::Null)
+    }
+    AdminRequest::Workspace(op) => {
+      let root_path = {
+        let lock = state.root_path.lock().map_err(|_| {
+          anyhow::anyhow!("Failed to lock the root path mutex for workspace operation")
+        })?;
+        lock.clone()
+      };
+      let response = handle_workspace_operation(root_path, op).await?;
+      Ok(serde_json::to_value(response)?)
+    }
   }
 }

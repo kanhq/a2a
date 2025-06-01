@@ -16,7 +16,7 @@ use super::AppState;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct OneShotRequest {
   script: String,
-  config: Value,
+  config: Option<Value>,
   params: Value,
 }
 
@@ -59,7 +59,7 @@ pub async fn post_form_handle(
   }
 }
 
-async fn post_json_handle_impl(_state: &AppState, mut req: OneShotRequest) -> Result<Value> {
+async fn post_json_handle_impl(state: &AppState, mut req: OneShotRequest) -> Result<Value> {
   let base = tempfile::Builder::new().prefix("a2a-").tempdir()?;
   debug!(?base, "oneshot start");
 
@@ -83,10 +83,21 @@ async fn post_json_handle_impl(_state: &AppState, mut req: OneShotRequest) -> Re
     );
   });
 
-  execute_js_code(&req.script, &req.config, &req.params, None).await
+  let conf = match req.config.as_ref() {
+    Some(ref conf) => {
+      if conf.is_null() {
+        &state.conf
+      } else {
+        conf
+      }
+    }
+    _ => &state.conf,
+  };
+
+  execute_js_code(&req.script, &conf, &req.params, None).await
 }
 
-async fn post_form_handle_impl(_state: &AppState, mut form: Multipart) -> Result<Value> {
+async fn post_form_handle_impl(state: &AppState, mut form: Multipart) -> Result<Value> {
   let base = tempfile::Builder::new().prefix("a2a-").tempdir()?;
 
   debug!(?base, "oneshot start");
@@ -128,5 +139,6 @@ async fn post_form_handle_impl(_state: &AppState, mut form: Multipart) -> Result
       }
     }
   }
-  execute_js_code(&code, &conf, &Value::Object(params), None).await
+  let conf = if conf.is_null() { &state.conf } else { &conf };
+  execute_js_code(&code, conf, &Value::Object(params), None).await
 }

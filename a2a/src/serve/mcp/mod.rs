@@ -81,11 +81,14 @@ impl ServerHandler for A2AMcp {
   ) -> Result<ListPromptsResult, rmcp::Error> {
     Ok(ListPromptsResult {
       next_cursor: None,
-      prompts: vec![Prompt::new(
-        "a2a",
-        Some("Let llm know how to use a2a_run tool"),
-        None,
-      )],
+      prompts: vec![
+        Prompt::new("a2a", Some("Let llm know how to use a2a_run tool"), None),
+        Prompt::new(
+          "config",
+          Some("Convert the natural language description of the configuration to a JSON object"),
+          None,
+        ),
+      ],
     })
   }
 
