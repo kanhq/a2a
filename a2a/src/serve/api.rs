@@ -61,7 +61,16 @@ async fn api_handler(
   } else {
     json!({"body": body, "query": query})
   };
-  let conf = state.conf.clone();
+  let conf = match state.conf.read() {
+    Ok(conf) => conf.clone(),
+    Err(e) => {
+      warn!("Failed to read configuration: {}", e);
+      return (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        Json(json!({"error": "Failed to read configuration"})),
+      );
+    }
+  };
 
   match crate::run::execute_js_file(filename, &conf, &params, None).await {
     Ok(val) => (StatusCode::OK, Json(val)),

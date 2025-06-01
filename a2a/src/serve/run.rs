@@ -59,6 +59,19 @@ pub async fn post_form_handle(
   }
 }
 
+fn config_or_default(state: &AppState, conf: Option<&Value>) -> Value {
+  match conf {
+    Some(Value::Object(m)) => Value::Object(m.clone()),
+    _ => match state.conf.read() {
+      Ok(c) => c.clone(),
+      Err(e) => {
+        warn!(?e, "Failed to read configuration, using default");
+        Value::Null
+      }
+    },
+  }
+}
+
 async fn post_json_handle_impl(state: &AppState, mut req: OneShotRequest) -> Result<Value> {
   let base = tempfile::Builder::new().prefix("a2a-").tempdir()?;
   debug!(?base, "oneshot start");
@@ -83,17 +96,7 @@ async fn post_json_handle_impl(state: &AppState, mut req: OneShotRequest) -> Res
     );
   });
 
-  let conf = match req.config.as_ref() {
-    Some(ref conf) => {
-      if conf.is_null() {
-        &state.conf
-      } else {
-        conf
-      }
-    }
-    _ => &state.conf,
-  };
-
+  let conf = config_or_default(state, req.config.as_ref());
   execute_js_code(&req.script, &conf, &req.params, None).await
 }
 
@@ -139,6 +142,6 @@ async fn post_form_handle_impl(state: &AppState, mut form: Multipart) -> Result<
       }
     }
   }
-  let conf = if conf.is_null() { &state.conf } else { &conf };
-  execute_js_code(&code, conf, &Value::Object(params), None).await
+  let conf = config_or_default(state, Some(&conf));
+  execute_js_code(&code, &conf, &Value::Object(params), None).await
 }

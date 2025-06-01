@@ -1,6 +1,6 @@
 use std::{
   path::PathBuf,
-  sync::{Arc, Mutex},
+  sync::{Arc, RwLock},
 };
 
 use crate::{app_conf::Serve, config_loader::load_conf_dir};
@@ -27,9 +27,9 @@ use mcp::{A2AMcp, McpState};
 pub use scheduler::test_scheduler;
 
 struct AppState {
-  pub conf: Value,
   // maybe change at runtime
-  pub root_path: Arc<Mutex<String>>,
+  pub conf: Arc<RwLock<Value>>,
+  pub root_path: PathBuf,
   pub api_root_path: PathBuf,
   pub scheduler_admin: ScheduleAdminSender,
   pub mcp_state: McpState,
@@ -57,8 +57,8 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
   let (mcp_server, mcp_router, mcp_state) = mcp::SseServer::new(mcp_sse_config);
 
   let state = Arc::new(AppState {
-    conf,
-    root_path: Arc::new(Mutex::new(arg.root_path.to_string_lossy().to_string())),
+    conf: Arc::new(RwLock::new(conf)),
+    root_path: arg.root_path.clone(),
     api_root_path: arg.api_root_path.clone(),
     scheduler_admin,
     mcp_state,

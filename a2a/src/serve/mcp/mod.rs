@@ -52,7 +52,13 @@ impl A2AMcp {
   async fn a2a_run_impl(&self, script: String) -> anyhow::Result<Value> {
     let params = Value::Null;
     let clean_up = None;
-    let result = execute_js_code(&script, &self.state.conf, &params, clean_up).await?;
+    let conf = self
+      .state
+      .conf
+      .read()
+      .map_err(|e| anyhow::anyhow!("Failed to read configuration: {}", e))?
+      .clone();
+    let result = execute_js_code(&script, &conf, &params, clean_up).await?;
 
     Ok(result)
   }

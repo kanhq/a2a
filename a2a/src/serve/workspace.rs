@@ -3,7 +3,9 @@ use std::path::Path;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::{app_conf::InitWorkDir, init::init_workdir};
+use crate::{app_conf::InitWorkDir, config_loader::load_conf_dir, init::init_workdir};
+
+use super::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorkspaceFile {
@@ -19,6 +21,8 @@ pub enum WorkspaceOperation {
   Delete(WorkspaceFile),
   List(String),
   Initialize,
+  // reload configuration
+  Reload,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,23 +30,25 @@ pub enum WorkspaceOperation {
 pub enum WorkspaceOperationResponse {
   File(WorkspaceFile),
   List(Vec<WorkspaceFile>),
-  Initialize,
+  Initialized,
+  Reloaded,
 }
 
-pub async fn handle_workspace_operation<P: AsRef<Path>>(
-  root_path: P,
+pub async fn handle_workspace_operation(
+  state: &AppState,
   operation: WorkspaceOperation,
 ) -> Result<WorkspaceOperationResponse> {
+  let root_path = state.root_path.as_path();
   match operation {
     WorkspaceOperation::Read(mut file) => {
-      let path = root_path.as_ref().join(&file.path.trim_start_matches('/'));
+      let path = root_path.join(&file.path.trim_start_matches('/'));
       let content = std::fs::read_to_string(&path)
         .map_err(|e| anyhow::anyhow!("Failed to read {}: {}", path.display(), e))?;
       file.content = Some(content);
       Ok(WorkspaceOperationResponse::File(file))
     }
     WorkspaceOperation::Write(mut file) => {
-      let path = root_path.as_ref().join(&file.path.trim_start_matches('/'));
+      let path = root_path.join(&file.path.trim_start_matches('/'));
       let content = file.content.unwrap_or_default();
       std::fs::write(&path, content)
         .map_err(|e| anyhow::anyhow!("Failed to write {}: {}", path.display(), e))?;
@@ -50,15 +56,15 @@ pub async fn handle_workspace_operation<P: AsRef<Path>>(
       Ok(WorkspaceOperationResponse::File(file))
     }
     WorkspaceOperation::Delete(file) => {
-      let path = root_path.as_ref().join(&file.path.trim_start_matches('/'));
+      let path = root_path.join(&file.path.trim_start_matches('/'));
       std::fs::remove_file(&path)
         .map_err(|e| anyhow::anyhow!("Failed to delete {}: {}", path.display(), e))?;
       Ok(WorkspaceOperationResponse::File(file))
     }
     WorkspaceOperation::List(path) => {
-      let dir_path = root_path.as_ref().join(path.trim_start_matches('/'));
+      let dir_path = root_path.join(path.trim_start_matches('/'));
       let mut files = walk_dir(&dir_path);
-      let base = root_path.as_ref().to_string_lossy().to_string();
+      let base = root_path.to_string_lossy().to_string();
       files.iter_mut().for_each(|file| {
         // Normalize the file path to be relative to the root path
         file.path = file.path.trim_start_matches(&base).to_string();
@@ -67,11 +73,23 @@ pub async fn handle_workspace_operation<P: AsRef<Path>>(
     }
     WorkspaceOperation::Initialize => {
       let wd = InitWorkDir {
-        work_dir: Some(root_path.as_ref().to_string_lossy().to_string()),
-        root_path: root_path.as_ref().to_path_buf(),
+        work_dir: Some(root_path.to_string_lossy().to_string()),
+        root_path: root_path.to_path_buf(),
       };
       init_workdir(&wd)?;
-      Ok(WorkspaceOperationResponse::Initialize)
+      Ok(WorkspaceOperationResponse::Initialized)
+    }
+    WorkspaceOperation::Reload => {
+      let conf_path = root_path.join("/conf");
+      let conf = load_conf_dir(&conf_path)?;
+
+      match state.conf.write() {
+        Ok(mut conf_guard) => {
+          *conf_guard = conf;
+          Ok(WorkspaceOperationResponse::Reloaded)
+        }
+        Err(e) => Err(anyhow::anyhow!("Failed to reload configuration: {}", e)),
+      }
     }
   }
 }
