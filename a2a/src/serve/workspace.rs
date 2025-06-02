@@ -50,6 +50,11 @@ pub async fn handle_workspace_operation(
     WorkspaceOperation::Write(mut file) => {
       let path = root_path.join(&file.path.trim_start_matches('/'));
       let content = file.content.unwrap_or_default();
+      let parent_dir = path
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("Invalid file path: {}", path.display()))?;
+      // Ensure the parent directory exists, ignore the result of create_dir_all
+      std::fs::create_dir_all(parent_dir).unwrap_or_default();
       std::fs::write(&path, content)
         .map_err(|e| anyhow::anyhow!("Failed to write {}: {}", path.display(), e))?;
       file.content = None; // Clear content after writing
