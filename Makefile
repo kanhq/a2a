@@ -43,5 +43,10 @@ dist: FORCE
 	cp bindings/nodejs/*.js dist/nodejs/
 	sed -i "s/\"version\": \"[0-9]\+\.[0-9]\+\.[0-9]\+\"/\"version\": \"${CURRENT_VERSION}\"/" dist/nodejs/package.json
 
+app: 
+  curl -LO https://github.com/kanhq/a2a-app/releases/latest/download/a2a-app.zip
+	unzip -o a2a-app.zip -d ./html
+	rm -f a2a-app.zip
+
 .PHONY: FORCE
 FORCE:

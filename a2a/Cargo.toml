@@ -37,3 +37,4 @@ rand.workspace = true
 rmcp = { version = "0.1.5", features = ["transport-sse-server"] }
 tokio-stream = "0.1.17"
 local-ip-address = "0.6.5"
+webbrowser = "1.0.4"

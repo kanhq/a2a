@@ -43,10 +43,14 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      # - name: Build
-      #   run: make dist
+      - name: Download a2a-app
+        run: |
+          curl -LO https://github.com/kanhq/a2a-app/releases/latest/download/a2a-app.zip
+          unzip -o a2a-app.zip -d ./html
+          rm -f a2a-app.zip
       - name: Upload
         uses: taiki-e/upload-rust-binary-action@v1
         with:
           bin: a2a
+          include: html
           token: ${{ secrets.GITHUB_TOKEN }}

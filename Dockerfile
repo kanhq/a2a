@@ -23,4 +23,4 @@ COPY --from=builder /app/a2a/a2a /usr/bin/a2a
 
 
 WORKDIR /a2a
-CMD [ "a2a", "serve", "-l", "0.0.0.0:30030" ]
+CMD [ "a2a", "serve", "-l", "0.0.0.0:30030", "--no-ui"]

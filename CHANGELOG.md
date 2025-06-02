@@ -2,9 +2,16 @@
 
 ## [v0.1.18] - 2025-06-03
 
+### Add
+- add workspace manage operation in `a2a serve` 
+- `a2a serve` now can open [a2a-app](https://github.com/kanhq/a2a-app) in browser by default, which is a web UI for a2a service, and can be disabled by --no-ui option
+- bundle `a2a-app` in release assets.
+
 ### Improvement
 
 - text input in `file`, `shell` and other actions now supports automatic encoding detection, for example, GBK txt file can be read as well
+- `shell` action now can use `7z` to process archive files
+
 
 ## [v0.1.17] - 2025-05-27
 

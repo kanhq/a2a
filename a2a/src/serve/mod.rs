@@ -13,7 +13,7 @@ use axum::{
 use scheduler::ScheduleAdminSender;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
-use tracing::info;
+use tracing::{error, info};
 
 mod admin;
 mod api;
@@ -94,6 +94,17 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
 
   let listener = tokio::net::TcpListener::bind(&arg.listen).await?;
 
+  if !arg.no_ui {
+    let work_dir_html = arg.html_root_path.clone();
+    let listen_addr = arg.listen.to_string();
+    tokio::spawn(async move {
+      // ensure the server is ready before opening the browser
+      tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+      setup_ui_files(work_dir_html);
+      open_browser(listen_addr);
+    });
+  }
+
   axum::serve(listener, app)
     .with_graceful_shutdown(shutdown_signal(ct))
     .await?;
@@ -160,4 +171,44 @@ fn local_ip(arg: &Serve) -> String {
   } else {
     return arg.listen.to_string();
   }
+}
+
+/// copy ui files from current 'html' directory to the work dir
+///
+fn setup_ui_files(dest_dir: PathBuf) {
+  let src_dir = PathBuf::from("html");
+
+  let src_version = std::fs::read_to_string(src_dir.join("version.txt")).unwrap_or_default();
+  let dest_version = std::fs::read_to_string(dest_dir.join("version.txt")).unwrap_or_default();
+
+  if src_version != dest_version {
+    copy_dir(&src_dir, &dest_dir).unwrap_or_else(|err| {
+      error!(%err, "Failed to copy UI files");
+    });
+  }
+}
+
+fn open_browser(listen_addr: String) {
+  let port = listen_addr.split(':').last().unwrap_or("30030");
+  let url = format!("http://localhost:{}", port);
+
+  webbrowser::open(&url).unwrap_or_else(|err| {
+    error!(%err, "Failed to open browser");
+  });
+}
+
+fn copy_dir(src: &PathBuf, dest: &PathBuf) -> Result<()> {
+  if !dest.exists() {
+    std::fs::create_dir_all(dest)?;
+  }
+  for entry in std::fs::read_dir(src)? {
+    let entry = entry?;
+    let path = entry.path();
+    if path.is_dir() {
+      copy_dir(&path, &dest.join(entry.file_name()))?;
+    } else {
+      std::fs::copy(&path, dest.join(entry.file_name()))?;
+    }
+  }
+  Ok(())
 }

@@ -103,12 +103,12 @@ pub struct Serve {
   pub listen: String,
 
   /// base dir of the server, there are some special sub directories
-  /// - html: all files under this directory will be served as static files
-  /// - api: all js files under this directory will be served as api
-  /// - conf: all config files under this directory will be loaded
-  /// - scheduler: the scheduler config file, task will be scheduled execution
   #[clap(short, long)]
   pub work_dir: Option<String>,
+
+  /// don't start ui when serve startup
+  #[clap(long, default_value = "false")]
+  pub no_ui: bool,
 
   /// the service path of admin api
   #[clap(long, default_value = "/admin")]
