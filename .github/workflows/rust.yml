@@ -47,7 +47,6 @@ jobs:
         run: |
           curl -LO https://github.com/kanhq/a2a-app/releases/latest/download/a2a-app.zip
           unzip -o a2a-app.zip -d ./html
-          rm -f a2a-app.zip
       - name: Upload
         uses: taiki-e/upload-rust-binary-action@v1
         with:
