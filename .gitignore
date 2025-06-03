@@ -8,6 +8,8 @@ Cargo.lock
 log
 dist
 
+.env
+
 dev_tmp
 a2a/test_app
 /html

@@ -8,7 +8,7 @@ use axum::{
 };
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use tracing::warn;
+use tracing::{error, warn};
 
 use super::AppState;
 use crate::coder::{default_system_prompt, write_code_stream, DEFAULT_SYSTEM_PROMPT};
@@ -26,6 +26,7 @@ pub async fn coder_handle(
   Json(req): Json<WriteRequest>,
 ) -> Response<Body> {
   if writer_conf().base_url.is_empty() || writer_conf().api_key.is_empty() {
+    error!("server LLM configuration is missing, please ensure OPENAI_BASE_URL and OPENAI_API_KEY environment variables have been set");
     return (
       StatusCode::INTERNAL_SERVER_ERROR,
       "Server LLM configuration is missing",
