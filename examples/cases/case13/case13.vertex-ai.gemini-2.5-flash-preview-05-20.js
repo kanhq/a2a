@@ -38,7 +38,7 @@ async function main(config, params) {
   return await doAction({
     kind: "shell",
     command: "open",
-    argsAsFile: "wechat_automation.ahk", // 临时文件名称
+    argAsFile: "wechat_automation.ahk", // 临时文件名称
     args: [ahkScript], // AutoHotkey 脚本内容
   });
 }

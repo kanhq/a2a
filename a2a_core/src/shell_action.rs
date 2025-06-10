@@ -40,10 +40,6 @@ pub async fn do_action(action: ShellAction) -> Result<ShellActionResult> {
     .await
     .map_err(|e| anyhow::anyhow!("Failed to execute command '{:#?}': {}", cmd, e))?;
 
-  // Clean up the args file if it was created
-  if let Some(args_as_file) = action.arg_as_file {
-    std::fs::remove_file(args_as_file).unwrap_or_default();
-  }
   if !output.status.success() {
     return Err(anyhow::anyhow!(
       "Command '{:#?}' failed with status: {}",
@@ -55,7 +51,13 @@ pub async fn do_action(action: ShellAction) -> Result<ShellActionResult> {
     .override_result_mimetype
     .unwrap_or("text/plain".to_string());
 
-  bytes_to_json(output.stdout.into(), mimetype, None)
+  let result = output.stdout.into();
+  let result = bytes_to_json(result, mimetype, None);
+  // // Clean up the args file if it was created
+  // if let Some(args_as_file) = action.arg_as_file {
+  //   std::fs::remove_file(args_as_file).unwrap_or_default();
+  // }
+  result
 }
 
 fn command_for_builtin(action: &ShellAction) -> Result<&str> {
