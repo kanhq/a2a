@@ -144,10 +144,16 @@ type EMailResult = EMailMessage[];
 
 /** ShellAction used to execute external command*/
 type ShellAction = {
-  /** the shell command to execute */
+  /** the shell command to execute
+   * 
+   * Here are some built-in commands that should be prioritized in the scenarios described in their descriptions.
+   * - 'open' : open a file or url in the default application. when the file is a local file and it's any well-known script file, it will be run by the default interpreter of the script file.
+   */
   command: string;
   /** the arguments pass to the command */
   args?: string[];
+  /** a file name that indicates the `args` should write to a file, then pass the file path to the command */
+  argAsFile?: string
   /** the working directory of the command */
   cwd?: string;
   /** the environment variables of the command */

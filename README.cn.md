@@ -65,6 +65,7 @@ A2A 嵌入了 [quickjs](https://bellard.org/quickjs/) 作为运行时, 这使得
 |[case02](examples/cases/case02/case02.md)|数据库|从JSON中读取数据,然后批量写入数据库|
 |[case03](examples/cases/case03/case03.cn.md)|自动化|收取分析新邮件, 当它是供货商发票时, 调用OCR抽取信息, 然后录入到CRM中, 然后发送通知|
 |[case12](examples/cases/case12/case12.cn.md)|自动化|检查服务的可用性，不可用时发送通知|
+|[case13](examples/cases/case13/case13.cn.md)|自动化|使用[AHK](https://www.autohotkey.com/)进行一些UI自动化|
 |[case04](examples/cases/case04/case04.md)|大模型处理|从给定的图片中, 提取结构化数据|
 |[case05](examples/cases/case05/case05.cn.md)|文件操作|从多个PDF中, 抽取指定页, 然后合并到一个PDF中|
 |[case07](examples/cases/case07/case07.md)|文件操作|在给定的目录及其子目录中, 查找指定名称的文件|

@@ -1,5 +1,14 @@
 # ChangeLog
 
+## [v0.1.19] - 2025-06-10
+
+## Improvement
+
+- `Shell` action now can use system's default application to open a file/url, eg. "open the example.docx" will open the associated application to view the document, usually Microsoft Word on Windows or macOS, and LibreOffice on Linux.
+- `Shell` action now can use `argAsFile` to pass a file path, all arguments will be write to the file, and the file will be passed to the command as an argument, user case are:
+  - You can let LLM write a [AHK](https://www.autohotkey.com/) script to do some GUI automation, then use `Shell` action to run the script. [see examples](/examples/cases/case13/case13.doubao.doubao-deepseek-chat.js)
+  - You can let LLM write a Python script to do some data processing, then use `Shell` action to run the script.
+
 ## [v0.1.18] - 2025-06-03
 
 ### Add

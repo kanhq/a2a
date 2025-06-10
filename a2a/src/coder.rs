@@ -64,8 +64,12 @@ pub(crate) fn default_system_prompt() -> &'static str {
       "windows" => "cmd",
       _ => "bash",
     };
+
+    let arch = std::env::consts::ARCH;
+
     system.push_str("## Runtime Information\n");
     system.push_str(&format!("- OS: {}\n", os));
+    system.push_str(&format!("- Arch: {}\n", arch));
     system.push_str(&format!("- Shell: {}\n", shell));
     system.push_str(&format!("- Today: {}\n", today));
 

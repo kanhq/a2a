@@ -8,6 +8,7 @@ Here are some example usages of `a2a`, demonstrating how to use `a2a` for differ
 |[case02](case02/case02.md)|Database|Read data from JSON, then batch write to database|
 |[case03](case03/case03.md)|Automation|Fetch and analyze new emails. If it is a supplier invoice, call OCR to extract information, then enter it into CRM, and send a notification|
 |[case12](/case12/case12.md)|Automation|Check the availability of a service and send a notification if it is unavailable.|
+|[case13](case13/case13.md)|Automation|Use [AHK](https://www.autohotkey.com/) to do some UI Automation|
 |[case04](case04/case04.md)|LLM Processing|Extract structured data from a given image|
 |[case05](case05/case05.md)|File Processing|Extract specified pages from multiple PDFs and then merge them into a single PDF.|
 |[case07](case07/case07.md)|File Processing|Find files with the specified name in the given directory and its subdirectories|

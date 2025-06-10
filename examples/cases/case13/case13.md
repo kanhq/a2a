@@ -1,0 +1,1 @@
+When Ctrl+J is pressed, activate the WeChat window, then send the 'Ctrl+F' shortcut key, enter "Nick", and press Enter.
