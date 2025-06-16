@@ -239,7 +239,7 @@ pub async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
     "stream_options": {
       "include_usage": true,
     },
-    "max_tokens": 4000,
+    "max_tokens": 16000,
   });
   let url = format!("{}/chat/completions", code.base_url);
   let request = client
@@ -276,7 +276,7 @@ pub async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
       }
       match serde_json::from_str::<Value>(chunk) {
         Ok(data) => {
-          //debug!(chunk, "stream chunk");
+          trace!(chunk, "stream chunk");
           if let Some(usage) = data
             .pointer("/usage")
             .and_then(|u| serde_json::from_value::<Usage>(u.clone()).ok())
