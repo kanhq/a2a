@@ -1,32 +1,46 @@
-mod sse_server;
+// mod sse_server;
 
 use std::sync::Arc;
 
 use a2a_types::Value;
 use rmcp::{
+  handler::server::tool::{Parameters, ToolRouter},
   model::{
     CallToolResult, Content, GetPromptRequestParam, GetPromptResult, Implementation,
     ListPromptsResult, PaginatedRequestParam, Prompt, PromptMessage, PromptMessageContent,
     PromptMessageRole, ProtocolVersion, ServerCapabilities, ServerInfo,
   },
+  schemars::JsonSchema,
   service::RequestContext,
-  tool, RoleServer, ServerHandler,
+  tool, tool_handler, tool_router, RoleServer, ServerHandler,
 };
-pub(crate) use sse_server::{McpState, SseServer, SseServerConfig};
+use serde::Deserialize;
+//pub(crate) use sse_server::{McpState, SseServer, SseServerConfig};
 
 use crate::{coder::default_system_prompt, run::execute_js_code};
+use futures::Future;
 
 use super::AppState;
 
 #[derive(Clone)]
 pub struct A2AMcp {
+  tool_router: ToolRouter<Self>,
   pub(crate) state: Arc<AppState>,
 }
 
-#[tool(tool_box)]
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+struct RunParams {
+  #[schemars(description = "the script to run")]
+  script: String,
+}
+
+#[tool_router]
 impl A2AMcp {
   pub fn new(state: Arc<AppState>) -> Self {
-    Self { state }
+    Self {
+      state,
+      tool_router: Self::tool_router(),
+    }
   }
 
   #[tool(
@@ -38,14 +52,12 @@ impl A2AMcp {
   )]
   async fn a2a_run(
     &self,
-    #[tool(param)]
-    #[schemars(description = "the source code to run")]
-    script: String,
-  ) -> Result<CallToolResult, rmcp::Error> {
+    Parameters(RunParams { script }): Parameters<RunParams>,
+  ) -> Result<CallToolResult, rmcp::ErrorData> {
     let result: Value = self
       .a2a_run_impl(script)
       .await
-      .map_err(|e| rmcp::Error::internal_error(format!("a2a_run failed: {}", e), None))?;
+      .map_err(|e| rmcp::ErrorData::internal_error(format!("a2a_run failed: {}", e), None))?;
     Ok(CallToolResult::success(vec![Content::json(result)?]))
   }
 
@@ -64,11 +76,11 @@ impl A2AMcp {
   }
 }
 
-#[tool(tool_box)]
+#[tool_handler]
 impl ServerHandler for A2AMcp {
   fn get_info(&self) -> ServerInfo {
     ServerInfo {
-      protocol_version: ProtocolVersion::V_2024_11_05,
+      protocol_version: ProtocolVersion::V_2025_03_26,
       capabilities: ServerCapabilities::builder()
         .enable_tools()
         .enable_prompts()
@@ -82,9 +94,9 @@ impl ServerHandler for A2AMcp {
 
   async fn list_prompts(
     &self,
-    _request: PaginatedRequestParam,
+    _request: Option<PaginatedRequestParam>,
     _: RequestContext<RoleServer>,
-  ) -> Result<ListPromptsResult, rmcp::Error> {
+  ) -> Result<ListPromptsResult, rmcp::ErrorData> {
     Ok(ListPromptsResult {
       next_cursor: None,
       prompts: vec![
@@ -102,7 +114,7 @@ impl ServerHandler for A2AMcp {
     &self,
     GetPromptRequestParam { name, arguments: _ }: GetPromptRequestParam,
     _: RequestContext<RoleServer>,
-  ) -> Result<GetPromptResult, rmcp::Error> {
+  ) -> Result<GetPromptResult, rmcp::ErrorData> {
     match name.as_str() {
       "a2a" => {
         let prompt = format!("You should write javascript code to complete the user input, then call tool `a2a_run` to execute the script and process the results, then answer the user based on the result of the script. \n {}", default_system_prompt().to_string());
@@ -114,7 +126,7 @@ impl ServerHandler for A2AMcp {
           }],
         })
       }
-      _ => Err(rmcp::Error::invalid_params("prompt not found", None)),
+      _ => Err(rmcp::ErrorData::invalid_params("prompt not found", None)),
     }
   }
 }

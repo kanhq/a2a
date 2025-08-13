@@ -10,6 +10,10 @@ use axum::{
   http::HeaderName,
   routing::{get, post},
 };
+use rmcp::transport::{
+  sse_server::SseServerConfig, streamable_http_server::session::local::LocalSessionManager,
+  SseServer, StreamableHttpService,
+};
 use scheduler::ScheduleAdminSender;
 use tokio_util::sync::CancellationToken;
 use tower_http::cors::{Any, CorsLayer};
@@ -23,7 +27,7 @@ mod scheduler;
 mod workspace;
 mod writer;
 
-use mcp::{A2AMcp, McpState};
+use mcp::A2AMcp;
 pub use scheduler::test_scheduler;
 
 struct AppState {
@@ -32,7 +36,7 @@ struct AppState {
   pub root_path: PathBuf,
   pub api_root_path: PathBuf,
   pub scheduler_admin: ScheduleAdminSender,
-  pub mcp_state: McpState,
+  //pub mcp_state: McpState,
 }
 
 pub(crate) async fn execute(arg: &Serve) -> Result<()> {
@@ -48,24 +52,32 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
   .await??;
   let mcp_path = arg.mcp_path.as_ref().map_or("/mcp", |p| p.as_str());
 
-  let mcp_sse_config = mcp::SseServerConfig {
+  let mcp_sse_config = SseServerConfig {
+    bind: arg.listen.parse()?,
+    sse_keep_alive: None,
     sse_path: format!("{}/sse", mcp_path),
     post_path: format!("{}/messages", mcp_path),
     ct: ct.clone(),
   };
   show_runtime_info(arg, &mcp_sse_config);
-  let (mcp_server, mcp_router, mcp_state) = mcp::SseServer::new(mcp_sse_config);
+  let (mcp_sse_server, mcp_sse_router) = SseServer::new(mcp_sse_config);
 
   let state = Arc::new(AppState {
     conf: Arc::new(RwLock::new(conf)),
     root_path: arg.root_path.clone(),
     api_root_path: arg.api_root_path.clone(),
     scheduler_admin,
-    mcp_state,
+    //mcp_state,
   });
 
-  let state_for_mcp = state.clone();
-  mcp_server.with_service(move || A2AMcp::new(state_for_mcp.clone()));
+  let state_for_mcp_sse = state.clone();
+  let state_for_mcp_http = state.clone();
+  mcp_sse_server.with_service(move || A2AMcp::new(state_for_mcp_sse.clone()));
+  let mcp_http_service = StreamableHttpService::new(
+    move || Ok(A2AMcp::new(state_for_mcp_http.clone())),
+    LocalSessionManager::default().into(),
+    Default::default(),
+  );
 
   let admin_path = arg.admin_path.as_ref().map_or("/admin", |p| p.as_str());
   let cors = CorsLayer::new()
@@ -88,8 +100,9 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
     .route("/run/json", post(run::post_json_handle))
     .route("/run/form", post(run::post_form_handle))
     .route(admin_path, post(admin::post_handler))
-    .merge(mcp_router)
+    .nest_service(mcp_path, mcp_http_service)
     .with_state(state)
+    .merge(mcp_sse_router)
     .layer(cors);
 
   let listener = tokio::net::TcpListener::bind(&arg.listen).await?;
@@ -139,7 +152,7 @@ async fn shutdown_signal(ct: CancellationToken) {
   ct.cancelled().await;
 }
 
-fn show_runtime_info(arg: &Serve, mcp_arg: &mcp::SseServerConfig) {
+fn show_runtime_info(arg: &Serve, mcp_arg: &SseServerConfig) {
   let workspace_dir = arg.root_path.display().to_string();
   info!(workspace_dir, "A2A starting server");
   let url = format!("http://{}", local_ip(arg));
@@ -151,6 +164,10 @@ fn show_runtime_info(arg: &Serve, mcp_arg: &mcp::SseServerConfig) {
     ("/code/prompt", "Get system prompt endpoint"),
     ("/run/json", "Run code from JSON request endpoint"),
     ("/run/form", "Run code from form request endpoint"),
+    (
+      arg.mcp_path.as_deref().unwrap_or("/mcp"),
+      "MCP StreamHTTP endpoint",
+    ),
     (mcp_arg.sse_path.as_ref(), "MCP SSE endpoint"),
     (admin_path, "Admin"),
   ];
