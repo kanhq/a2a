@@ -97,7 +97,7 @@ fn row_to_value(row: SqliteRow) -> Value {
   Value::Object(val)
 }
 
-fn value_to_args(val: Option<&Value>) -> Option<SqliteArguments> {
+fn value_to_args(val: Option<&Value>) -> Option<SqliteArguments<'_>> {
   match val {
     Some(Value::Array(a)) => {
       let mut args = SqliteArguments::default();
