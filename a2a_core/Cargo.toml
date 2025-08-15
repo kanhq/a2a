@@ -22,7 +22,7 @@ quick-xml = { version = "0.37", features = ["serialize", "overlapped-lists"] }
 tokio.workspace = true
 tokio-util.workspace = true
 futures.workspace = true
-opendal = { version = "0.52", features = [
+opendal = { version = "0.54", features = [
   "services-azblob",
   "services-azdls",
   "services-cos",
