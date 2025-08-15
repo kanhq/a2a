@@ -1,4 +1,5 @@
 use clap::{ArgAction, Args, Parser, Subcommand};
+use tracing::{debug, info};
 
 use std::{
   fs,
@@ -195,6 +196,7 @@ pub fn app_conf() -> &'static AppConf {
           .unwrap_or(default_work_dir())
           .canonicalize()
           .unwrap_or_default();
+        debug!(?work_dir, "current work dir");
         runner.conf_dir = work_dir.join("conf");
       }
       Commands::Serve(ref mut serve) => {
@@ -204,6 +206,7 @@ pub fn app_conf() -> &'static AppConf {
           .map(|p| PathBuf::from(p))
           .unwrap_or(default_work_dir());
 
+        info!(pwd = ?serve.root_path, "current work dir");
         fs::create_dir_all(&serve.root_path).unwrap_or_default();
 
         serve.root_path = serve.root_path.canonicalize().unwrap_or_default();
@@ -222,6 +225,7 @@ pub fn app_conf() -> &'static AppConf {
           .as_ref()
           .map(|p| PathBuf::from(p))
           .unwrap_or(default_work_dir());
+        info!(pwd = ?init.root_path, "current work dir");
         fs::create_dir_all(&init.root_path).unwrap_or_default();
         init.root_path = init.root_path.canonicalize().unwrap_or_default();
       }

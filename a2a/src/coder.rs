@@ -372,7 +372,6 @@ impl<R: AsyncBufRead> Stream for LlmStream<R> {
   }
 }
 
-#[allow(dead_code)]
 pub async fn write_code_stream(code: &WriteCode) -> Result<Response<Body>> {
   info!(
     provider = code.provider.as_str(),

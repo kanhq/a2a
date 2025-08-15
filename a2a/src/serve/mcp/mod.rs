@@ -15,6 +15,7 @@ use rmcp::{
   tool, tool_handler, tool_router, RoleServer, ServerHandler,
 };
 use serde::Deserialize;
+use tracing::debug;
 //pub(crate) use sse_server::{McpState, SseServer, SseServerConfig};
 
 use crate::{coder::default_system_prompt, run::execute_js_code};
@@ -54,6 +55,7 @@ impl A2AMcp {
     &self,
     Parameters(RunParams { script }): Parameters<RunParams>,
   ) -> Result<CallToolResult, rmcp::ErrorData> {
+    debug!(script, "a2a_mcp_run");
     let result: Value = self
       .a2a_run_impl(script)
       .await
@@ -117,7 +119,19 @@ impl ServerHandler for A2AMcp {
   ) -> Result<GetPromptResult, rmcp::ErrorData> {
     match name.as_str() {
       "a2a" => {
-        let prompt = format!("You should write javascript code to complete the user input, then call tool `a2a_run` to execute the script and process the results, then answer the user based on the result of the script. \n {}", default_system_prompt().to_string());
+        let prompt = format!(
+          r#"You should write JavaScript code to meet user needs,
+then call tool `a2a_run` to execute the script and process the results, 
+then reply the user based on the result of the script. 
+
+If other tools are also provided here, 
+please select and use the appropriate tool based on the user's input and the tool's description to obtain more reference information when you write the script.
+
+Basic and mandatory coding standards are as follows
+
+{}"#,
+          default_system_prompt().to_string()
+        );
         Ok(GetPromptResult {
           description: None,
           messages: vec![PromptMessage {
