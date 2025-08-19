@@ -5,11 +5,11 @@ mod openai;
 use std::{
   path::{Path, PathBuf},
   sync::OnceLock,
-  task::Poll,
 };
 
 use crate::{
   app_conf::{Coder, Runner},
+  coder::openai::ChatCompletionUsage,
   default_work_dir, run,
 };
 
@@ -19,16 +19,13 @@ use axum::{
   body::Body,
   response::{sse::Event, IntoResponse, Response, Sse},
 };
-use futures::{Stream, StreamExt, TryStreamExt};
-use pin_project_lite::pin_project;
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use time::format_description::well_known::Rfc3339;
-use tokio::{
-  io::{AsyncBufRead, AsyncBufReadExt, Lines},
-  task::JoinSet,
-};
+use tokio::task::JoinSet;
 use tracing::{debug, info, trace, warn};
+
+use chat_stream::ChatStream;
 
 pub const DEFAULT_SYSTEM_PROMPT: &'static str = include_str!("../code.md");
 pub const DEFAULT_API_DEFINE: &'static str = include_str!("../../../bindings/nodejs/action.ts");
@@ -212,13 +209,6 @@ fn text_or_file(text: &str) -> (String, bool) {
   }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Usage {
-  pub completion_tokens: usize,
-  pub prompt_tokens: usize,
-  pub total_tokens: usize,
-}
-
 pub async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
   info!(
     provider = code.provider.as_str(),
@@ -226,50 +216,14 @@ pub async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
     "writing code start"
   );
 
-  let client = reqwest::Client::new();
-
-  let llm_body = json!({
-    "model": code.model,
-    "messages": [
-      {
-        "role": "system",
-        "content": code.system
-      },
-      {
-        "role": "user",
-        "content": code.user
-      }
-    ],
-    "stream": true,
-    "stream_options": {
-      "include_usage": true,
-    },
-    "max_tokens": 16000,
-  });
-  let url = format!("{}/chat/completions", code.base_url);
-  let request = client
-    .post(&url)
-    .bearer_auth(&code.api_key)
-    .header("x-portkey-provider", &code.provider)
-    .json(&llm_body)
-    .build()?;
-
-  let start_time = time::OffsetDateTime::now_utc();
-
-  let response = client.execute(request).await?;
-  // check if the response is successful
-  response.error_for_status_ref()?;
-
-  let stream = response
-    .bytes_stream()
-    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
-
-  let mut read = tokio_util::io::StreamReader::new(stream).lines();
+  let mut stream = ChatStream::new(code.clone());
 
   let mut first_token = true;
   let mut llm_response: String = String::new();
   let mut step = 0;
-  while let Some(chunk) = read.next_line().await? {
+  let start_time = time::OffsetDateTime::now_utc();
+  while let Some(chunk) = stream.rx.recv().await {
+    let chunk = chunk?;
     let chunk = chunk.trim();
     if chunk.starts_with("data:") {
       let chunk = chunk.strip_prefix("data:").unwrap().trim();
@@ -284,7 +238,7 @@ pub async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
           trace!(chunk, "stream chunk");
           if let Some(usage) = data
             .pointer("/usage")
-            .and_then(|u| serde_json::from_value::<Usage>(u.clone()).ok())
+            .and_then(|u| serde_json::from_value::<ChatCompletionUsage>(u.clone()).ok())
           {
             code.prompt_tokens = usage.prompt_tokens;
             code.response_tokens = usage.completion_tokens;
@@ -341,42 +295,6 @@ pub async fn write_code(mut code: WriteCode) -> Result<WriteCode> {
   Ok(code)
 }
 
-pin_project! {
-
-pub struct LlmStream<R> {
-  #[pin]
-  lines: Lines<R>,
-}
-}
-
-impl<R: AsyncBufRead> Stream for LlmStream<R> {
-  type Item = String;
-
-  fn poll_next(
-    self: std::pin::Pin<&mut Self>,
-    cx: &mut std::task::Context,
-  ) -> Poll<Option<Self::Item>> {
-    let this = self.project();
-    let rd = this.lines;
-    match rd.poll_next_line(cx) {
-      Poll::Ready(Ok(None)) => Poll::Ready(None),
-      Poll::Ready(Ok(Some(line))) => {
-        trace!(?line, "stream line");
-        if line.is_empty() {
-          Poll::Ready(Some("".to_string()))
-        } else {
-          match line.strip_prefix("data:") {
-            Some(data) => Poll::Ready(Some(data.to_string())),
-            None => Poll::Pending,
-          }
-        }
-      }
-      Poll::Ready(Err(e)) => Poll::Ready(Some(e.to_string())),
-      Poll::Pending => Poll::Pending,
-    }
-  }
-}
-
 pub async fn write_code_stream(code: &WriteCode) -> Result<Response<Body>> {
   info!(
     provider = code.provider.as_str(),
@@ -384,47 +302,21 @@ pub async fn write_code_stream(code: &WriteCode) -> Result<Response<Body>> {
     "writing code start"
   );
 
-  let client = reqwest::Client::new();
+  let stream = ChatStream::new(code.clone());
 
-  let llm_body = json!({
-    "model": code.model,
-    "messages": [
-      {
-        "role": "system",
-        "content": code.system
-      },
-      {
-        "role": "user",
-        "content": code.user
-      }
-    ],
-    "stream": true,
-    "stream_options": {
-      "include_usage": true,
+  let stream = stream.map(|chunk| {
+    if chunk.starts_with("data:") {
+      Ok::<Event, axum::Error>(
+        Event::default().data(chunk.strip_prefix("data:").unwrap_or("").trim()),
+      )
+    } else if chunk.starts_with("event:") {
+      Ok::<Event, axum::Error>(
+        Event::default().event(chunk.strip_prefix("event:").unwrap_or("").trim()),
+      )
+    } else {
+      Ok::<Event, axum::Error>(Event::default().comment(chunk))
     }
   });
-  let url = format!("{}/chat/completions", code.base_url);
-  let request = client
-    .post(&url)
-    .bearer_auth(&code.api_key)
-    .header("x-portkey-provider", &code.provider)
-    .json(&llm_body)
-    .build()?;
-
-  let response = client.execute(request).await?;
-  // check if the response is successful
-  response.error_for_status_ref()?;
-
-  let stream = response
-    .bytes_stream()
-    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
-
-  let lines = tokio_util::io::StreamReader::new(stream).lines();
-
-  let stream = LlmStream { lines }
-    .filter(|line| futures::future::ready(!line.is_empty()))
-    .map(|line| Event::default().data(line.trim()))
-    .map(|line| Ok::<_, std::io::Error>(line));
 
   Ok(Sse::new(stream).into_response())
 }

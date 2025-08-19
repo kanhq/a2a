@@ -29,7 +29,9 @@ impl Stream for ChatStream {
 
   fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
     let this = self.get_mut();
-    match this.rx.poll_recv(cx) {
+    let data = this.rx.poll_recv(cx);
+    debug!(?data, "polling chat stream");
+    match data {
       Poll::Ready(Some(Ok(msg))) => Poll::Ready(Some(msg)),
       Poll::Ready(Some(Err(_))) => Poll::Ready(None),
       Poll::Ready(None) => Poll::Ready(None),
@@ -99,6 +101,7 @@ impl ChatStream {
       let reader = StreamReader::new(stream);
       let mut lines = reader.lines();
 
+      let mut last_tool_call_id = String::new();
       while let Some(line) = lines.next_line().await? {
         if line.is_empty() {
           continue;
@@ -118,9 +121,12 @@ impl ChatStream {
 
           for choice in chunk.choices {
             for tool_call in choice.delta.tool_calls.unwrap_or_default() {
-              if tool_calls.contains_key(&tool_call.id) {
+              if !tool_call.id.is_empty() {
+                last_tool_call_id = tool_call.id.clone();
+              }
+              if tool_calls.contains_key(&last_tool_call_id) {
                 tool_calls
-                  .get_mut(&tool_call.id)
+                  .get_mut(&last_tool_call_id)
                   .unwrap()
                   .function
                   .arguments

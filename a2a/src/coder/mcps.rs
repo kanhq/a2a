@@ -1,11 +1,11 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use rmcp::{
-  RoleClient, ServiceExt,
   model::{CallToolRequestParam, Tool},
   service::RunningService,
   transport::{SseClientTransport, StreamableHttpClientTransport},
+  RoleClient, ServiceExt,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 struct McpClient {
   service: RunningService<RoleClient, ()>,
@@ -125,7 +125,11 @@ impl McpClientSet {
         tools.extend(arr);
       }
     }
-    Ok(Value::Array(tools))
+    if tools.is_empty() {
+      Ok(Value::Null)
+    } else {
+      Ok(Value::Array(tools))
+    }
   }
 
   pub async fn call_tool(&self, tool_name: &str, args: Option<Value>) -> Result<String> {
