@@ -34,7 +34,13 @@ axum-streams = { version = "0.20", features = ["text"] }
 axum-extra = { version = "0.10", features = ["multipart"] }
 tempfile = "3"
 rand.workspace = true
-rmcp = { version = "0.5", features = ["transport-sse-server", "transport-streamable-http-server"] }
+rmcp = { version = "0.5", features = [
+  "transport-sse-server", 
+  "transport-streamable-http-server",
+  "transport-child-process",
+  "transport-sse-client",
+  "transport-streamable-http-client",
+] }
 tokio-stream = "0.1.17"
 local-ip-address = "0.6.5"
 webbrowser = "1.0.4"

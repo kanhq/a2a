@@ -1,3 +1,7 @@
+mod chat_stream;
+mod mcps;
+mod openai;
+
 use std::{
   path::{Path, PathBuf},
   sync::OnceLock,
@@ -26,8 +30,8 @@ use tokio::{
 };
 use tracing::{debug, info, trace, warn};
 
-pub const DEFAULT_SYSTEM_PROMPT: &'static str = include_str!("./code.md");
-pub const DEFAULT_API_DEFINE: &'static str = include_str!("../../bindings/nodejs/action.ts");
+pub const DEFAULT_SYSTEM_PROMPT: &'static str = include_str!("../code.md");
+pub const DEFAULT_API_DEFINE: &'static str = include_str!("../../../bindings/nodejs/action.ts");
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct WriteCode {
@@ -39,6 +43,7 @@ pub struct WriteCode {
   pub model: String,
   pub base_url: String,
   pub api_key: String,
+  pub mcp_list: Vec<String>,
 
   // # stats
   pub retry: usize,
@@ -396,8 +401,7 @@ pub async fn write_code_stream(code: &WriteCode) -> Result<Response<Body>> {
     "stream": true,
     "stream_options": {
       "include_usage": true,
-    },
-    "max_tokens": 4000,
+    }
   });
   let url = format!("{}/chat/completions", code.base_url);
   let request = client
