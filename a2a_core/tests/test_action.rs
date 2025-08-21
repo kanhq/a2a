@@ -183,6 +183,7 @@ async fn test_shell() {
     env: None,
     cwd: None,
     override_result_mimetype: None,
+    arg_as_file: None,
   };
 
   match do_action(Action::Shell(action)).await {

@@ -97,6 +97,7 @@ pub struct ShellAction {
   pub args: Option<Vec<String>>,
   pub env: Option<HashMap<String, String>>,
   pub cwd: Option<String>,
+  // save args as file specified by arg_as_file
   pub arg_as_file: Option<String>,
 }
 
