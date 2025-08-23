@@ -114,7 +114,7 @@ impl ChatStream {
           let chunk = match serde_json::from_str::<ChatCompletionChunk>(data) {
             Ok(chunk) => chunk,
             Err(err) => {
-              error!(?err, "Failed to parse chunk");
+              error!(?err, data, "Failed to parse chunk");
               break;
             }
           };

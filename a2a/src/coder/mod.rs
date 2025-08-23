@@ -120,8 +120,14 @@ pub(crate) async fn execute(arg: &Coder) -> Result<()> {
         .as_ref()
         .or(default_output_name.as_ref())
         .map(|f| {
-          f.replace("{provider}", &provider)
-            .replace("{model}", &model)
+          f.replace(
+            "{provider}",
+            &provider.replace(|c| c == '\\' || c == '/' || c == ':', "_"),
+          )
+          .replace(
+            "{model}",
+            &model.replace(|c| c == '\\' || c == '/' || c == ':', "_"),
+          )
         });
 
       WriteCode {
@@ -327,13 +333,19 @@ fn extract_code(resp: &str, provider: &str, model: &str) -> String {
     provider, model
   );
   let mut in_code = false;
+  let mut has_code = false;
   for line in resp.lines() {
     if line.trim().starts_with("```") {
       in_code = !in_code;
+      has_code = true;
     } else if in_code {
       code.push_str(line);
       code.push('\n');
     }
+  }
+  if !has_code {
+    // no code blocks found, returning full response
+    code.push_str(resp);
   }
   code
 }
