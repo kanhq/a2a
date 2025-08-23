@@ -26,7 +26,8 @@ pub struct ChatCompletionChoice {
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde(default)]
 pub struct ChatCompletionChoiceDelta {
-  pub role: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub role: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub content: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
