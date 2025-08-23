@@ -1,74 +1,124 @@
-export async function main(config, params) {
-  // 从配置中获取必要的信息
-  const ocrUrl = config.ocr_url;
-  const ocrApiKey = config.ocr_api_key;
-  const emailAccount = config.email_account;
-  const emailSavePointPath = config.email_save_point;
-
-  // 读取 'email_save_point' 配置的 JSON 文件
-  const lastIdFileAction = {
-    kind: 'file',
-    method: 'READ',
-    path: emailSavePointPath,
-    overrideResultMimeType: 'application/json'
-  };
-  const lastIdFileResult = await doAction(lastIdFileAction);
-  const lastId = lastIdFileResult.lastId || 0;
+// written by LLM provider: qwen model: qwen-plus-latest
+async function main(config, params) {
+  // 读取保存的最后邮件ID
+  const savePointFile = await doAction({
+    kind: "file",
+    method: "READ",
+    path: config.email_save_point
+  });
+  const lastId = savePointFile.lastId || 0;
 
   // 获取新邮件
-  const emailAction = {
-    kind: 'email',
-    method: 'RECV',
-    account: emailAccount,
-    folder: 'INBOX',
+  const emails = await doAction({
+    kind: "email",
+    method: "RECV",
+    account: config.email_account,
     last_id: lastId
-  };
-  const emails = await doAction(emailAction);
+  });
 
-  // 处理每封新邮件
+  // 用于存储通知详情的数组
+  const details = [];
+  
+  // 处理每封邮件
   for (const email of emails) {
-    if (email.from === 'tom@microsoft.com' && email.attachments.length > 0) {
-      for (const attachment of email.attachments) {
+    // 检查是否为指定发件人且包含附件
+    if (email.from === 'tom@vendor.com' && email.attachments && email.attachments.length > 0) {
+      // 处理每个附件
+      for (const attachmentPath of email.attachments) {
         // 读取附件内容
-        const attachmentFileAction = {
-          kind: 'file',
-          method: 'READ',
-          path: attachment
-        };
-        const attachmentContent = await doAction(attachmentFileAction);
+        const attachmentData = await doAction({
+          kind: "file",
+          method: "READ",
+          path: attachmentPath
+        });
 
-        // 检查附件是否为图片或 PDF
-        const isImageOrPdf = attachmentContent.startsWith('data:image/') || attachmentContent.startsWith('data:application/pdf');
-        if (isImageOrPdf) {
-          // 提交到 OCR 服务
-          const ocrAction = {
-            kind: 'http',
-            method: 'POST',
-            url: ocrUrl,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${ocrApiKey}`
-            },
-            body: {
-              image: attachmentContent
-            }
-          };
-          await doAction(ocrAction);
+        // 根据文件类型进行base64编码
+        let mimeType = "image/*";
+        if (attachmentPath.endsWith(".pdf")) {
+          mimeType = "application/pdf";
         }
+        
+        const base64Data = await doAction({
+          kind: "enc",
+          methods: ["base64"],
+          data: attachmentData
+        });
+
+        const dataUrl = `data:${mimeType};base64,${base64Data}`;
+
+        // 调用OCR服务
+        const ocrResult = await doAction({
+          kind: "http",
+          method: "POST",
+          url: config.ocr_url,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": config.ocr_api_key
+          },
+          body: {
+            image: dataUrl
+          }
+        });
+
+        // 提取结果信息
+        const resultInfo = {
+          documentType: ocrResult.body.documentType,
+          sn: ocrResult.body.invoiceNumber || ocrResult.body.receiptNumber,
+          amount: ocrResult.body.amount,
+          vendor: "vendor.com"
+        };
+
+        // 根据文档类型调用相应的OA服务
+        if (resultInfo.documentType === "invoice") {
+          await doAction({
+            kind: "http",
+            method: "POST",
+            url: config.oa_invoice,
+            body: ocrResult.body
+          });
+        } else if (resultInfo.documentType === "receipt") {
+          await doAction({
+            kind: "http",
+            method: "POST",
+            url: config.oa_receipt,
+            body: ocrResult.body
+          });
+        }
+
+        // 添加到通知详情
+        details.push(resultInfo);
       }
     }
   }
 
-  // 更新 'lastId' 到 'email_save_point' 配置的 JSON 文件
-  const newLastIdFileAction = {
-    kind: 'file',
-    method: 'WRITE',
-    path: emailSavePointPath,
-    body: { lastId: emails[emails.length - 1]?.id || lastId },
-    overrideResultMimeType: 'application/json'
-  };
-  await doAction(newLastIdFileAction);
+  // 更新最后处理的邮件ID
+  await doAction({
+    kind: "file",
+    method: "WRITE",
+    path: config.email_save_point,
+    body: { lastId: emails[emails.length - 1].id }
+  });
 
-  // 返回最后处理的邮件 ID
-  return { lastProcessedEmailId: emails[emails.length - 1]?.id || lastId };
+  // 如果有处理结果，发送钉钉通知
+  if (details.length > 0) {
+    const currentDate = new Date().toISOString().split('T')[0];
+    
+    // 构建通知内容
+    let detailItems = "";
+    for (const detail of details) {
+      detailItems += `- Type: ${detail.documentType} No.: ${detail.sn} Amount: ${detail.amount}\n`;
+    }
+    
+    const notificationContent = `# ${details[0].vendor} New Email Processing Completed\n\n# Date: ${currentDate}\n\n# Details\n\n${detailItems}`;
+
+    // 发送钉钉通知
+    await doAction({
+      kind: "notify",
+      url: config.dingtalk,
+      message: notificationContent
+    });
+  }
+
+  // 返回最后的处理结果
+  return details;
 }
