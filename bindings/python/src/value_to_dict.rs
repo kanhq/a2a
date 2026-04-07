@@ -35,20 +35,20 @@ pub(crate) fn value_to_py<'py>(py: Python<'py>, value: &Value) -> PyResult<Bound
 }
 
 pub(crate) fn value_from_py<'py>(py: Python, value: Bound<'py, PyAny>) -> anyhow::Result<Value> {
-  let v = value.downcast_exact::<PyNone>();
+  let v = value.cast_exact::<PyNone>();
   if v.is_ok() {
     return Ok(Value::Null);
   }
-  let v = value.downcast_exact::<PyBool>();
+  let v = value.cast_exact::<PyBool>();
   if v.is_ok() {
     return Ok(Value::Bool(v.unwrap().is_true()));
   }
-  let v = value.downcast_exact::<PyInt>();
+  let v = value.cast_exact::<PyInt>();
   if v.is_ok() {
     let v = v.unwrap().extract::<i64>().unwrap_or_default();
     return Ok(Value::Number(v.into()));
   }
-  let v = value.downcast::<PyFloat>();
+  let v = value.cast::<PyFloat>();
   if v.is_ok() {
     let v = v.unwrap().extract::<f64>().unwrap_or_default();
     return Ok(
@@ -57,12 +57,12 @@ pub(crate) fn value_from_py<'py>(py: Python, value: Bound<'py, PyAny>) -> anyhow
         .unwrap_or(Value::Null),
     );
   }
-  let v = value.downcast::<PyString>();
+  let v = value.cast::<PyString>();
   if v.is_ok() {
     let v = v.unwrap().extract::<String>()?;
     return Ok(Value::String(v));
   }
-  let v = value.downcast::<PyList>();
+  let v = value.cast::<PyList>();
   if v.is_ok() {
     let v = v.unwrap();
     return v
@@ -71,7 +71,7 @@ pub(crate) fn value_from_py<'py>(py: Python, value: Bound<'py, PyAny>) -> anyhow
       .collect::<Result<Vec<_>, _>>()
       .map(|a| Value::Array(a));
   }
-  let v = value.downcast::<PyDict>();
+  let v = value.cast::<PyDict>();
   if v.is_ok() {
     let v = v.unwrap();
     return v

@@ -6,21 +6,17 @@ use a2a_types::Value;
 use rmcp::{
   handler::server::{tool::ToolRouter, wrapper::Parameters},
   model::{
-    CallToolResult, Content, GetPromptRequestParam, GetPromptResult, Implementation,
-    ListPromptsResult, PaginatedRequestParam, PaginatedRequestParams, Prompt, PromptMessage,
-    PromptMessageContent, PromptMessageRole, ProtocolVersion, ServerCapabilities, ServerInfo,
+    CallToolResult, Content, Implementation, PromptMessage, PromptMessageRole, ProtocolVersion, ServerCapabilities, ServerInfo,
   },
   prompt, prompt_router,
   schemars::JsonSchema,
-  service::RequestContext,
-  tool, tool_handler, tool_router, RoleServer, ServerHandler,
+  tool, tool_handler, tool_router, ServerHandler,
 };
 use serde::Deserialize;
 use tracing::debug;
 //pub(crate) use sse_server::{McpState, SseServer, SseServerConfig};
 
 use crate::{coder::default_system_prompt, run::execute_js_code};
-use futures::Future;
 
 use super::AppState;
 

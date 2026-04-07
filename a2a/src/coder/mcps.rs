@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use rmcp::{
   model::{
-    CallToolRequestParam, CallToolRequestParams, ClientCapabilities, ClientInfo, Implementation,
+    CallToolRequestParams, ClientCapabilities, ClientInfo, Implementation,
     InitializeRequestParams, Tool,
   },
   service::RunningService,

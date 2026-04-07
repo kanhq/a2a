@@ -61,7 +61,7 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
     //mcp_state,
   });
 
-  let state_for_mcp_sse = state.clone();
+  let _state_for_mcp_sse = state.clone();
   let state_for_mcp_http = state.clone();
   let mcp_http_service = StreamableHttpService::new(
     move || Ok(A2AMcp::new(state_for_mcp_http.clone())),
