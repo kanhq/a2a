@@ -2,7 +2,7 @@ use aes::cipher::{generic_array::GenericArray, BlockDecrypt, BlockEncrypt, KeyIn
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit};
 use aes::Aes128;
 use anyhow::{anyhow, bail, Result};
-use rand::RngCore;
+use rand::Rng;
 
 pub(crate) fn padding_as(method: &str, block_size: usize, data: &[u8]) -> Vec<u8> {
   match method {

@@ -1,37 +1,39 @@
 use anyhow::{bail, Result};
 use rmcp::{
-  model::{CallToolRequestParam, Tool},
+  model::{
+    CallToolRequestParam, CallToolRequestParams, ClientCapabilities, ClientInfo, Implementation,
+    InitializeRequestParams, Tool,
+  },
   service::RunningService,
-  transport::{SseClientTransport, StreamableHttpClientTransport},
+  transport::StreamableHttpClientTransport,
   RoleClient, ServiceExt,
 };
 use serde_json::{json, Value};
+use tracing::debug;
 
 struct McpClient {
-  service: RunningService<RoleClient, ()>,
+  service: RunningService<RoleClient, InitializeRequestParams>,
   tools: Vec<Tool>,
 }
 
 impl McpClient {
   pub async fn new(conn_str: &str) -> Result<Self> {
     if conn_str.starts_with("http") {
-      if conn_str.ends_with("/sse") {
-        let tr = SseClientTransport::start(conn_str.to_owned()).await?;
-        let service = ().serve(tr).await?;
-        let tools = service.list_tools(None).await?;
-        Ok(Self {
-          service,
-          tools: tools.tools,
-        })
-      } else {
-        let tr = StreamableHttpClientTransport::from_uri(conn_str);
-        let service = ().serve(tr).await?;
-        let tools = service.list_tools(None).await?;
-        Ok(Self {
-          service,
-          tools: tools.tools,
-        })
-      }
+      let tr = StreamableHttpClientTransport::from_uri(conn_str);
+      let client_info = ClientInfo::new(
+        ClientCapabilities::default(),
+        Implementation::new("a2a-client", "0.1.0"),
+      );
+      let client = client_info.serve(tr).await?;
+
+      let server_info = client.peer_info();
+      debug!("server info: {server_info:?}");
+
+      let tools = client.list_tools(None).await?;
+      Ok(Self {
+        service: client,
+        tools: tools.tools,
+      })
     } else {
       bail!("Unsupported connection string: {}", conn_str);
     }
@@ -58,42 +60,34 @@ impl McpClient {
   }
 
   pub async fn call_tool(&self, tool_name: &str, args: Option<Value>) -> Result<String> {
-    let resp = self
-      .service
-      .call_tool(CallToolRequestParam {
-        name: tool_name.to_string().into(),
-        arguments: args.and_then(|v| v.as_object().cloned()),
-      })
-      .await?;
+    let mut params = CallToolRequestParams::new(tool_name.to_string());
+    if let Some(args) = args.as_ref().and_then(|a| a.as_object()) {
+      params = params.with_arguments(args.clone());
+    }
+
+    let resp = self.service.call_tool(params).await?;
     if resp.is_error.unwrap_or(false) {
       bail!(
         "Tool call failed: {}",
         resp
           .content
-          .map(|a| a
-            .iter()
-            .filter_map(|r| r.as_text())
-            .fold(String::new(), |mut f, r| {
-              f.push_str(&r.text);
-              f
-            }))
-          .unwrap_or("Unknown error".to_string())
+          .iter()
+          .filter_map(|r| r.as_text())
+          .fold(String::new(), |mut f, r| {
+            f.push_str(&r.text);
+            f
+          })
       );
     }
     let result = resp
       .content
-      .map(|a| {
-        let a =
-          a.into_iter()
-            .filter_map(|r| r.as_text().cloned())
-            .fold(String::new(), |mut a, r| {
-              a.push('\n');
-              a.push_str(&r.text);
-              a
-            });
+      .iter()
+      .flat_map(|r| r.as_text())
+      .fold(String::new(), |mut a, r| {
+        a.push('\n');
+        a.push_str(&r.text);
         a
-      })
-      .unwrap_or_default();
+      });
     Ok(result)
   }
 

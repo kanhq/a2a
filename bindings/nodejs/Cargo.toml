@@ -10,8 +10,8 @@ authors.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "2", features = ["async", "serde-json", "anyhow"] }
-napi-derive = "2"
+napi = { version = "3", features = ["async", "serde-json", "anyhow"] }
+napi-derive = "3"
 a2a_core = { path = "../../a2a_core" }
 a2a_tojson = { path = "../../a2a_tojson" }
 a2a_types = { path = "../../a2a_types" }

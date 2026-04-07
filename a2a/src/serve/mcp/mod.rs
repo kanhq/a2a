@@ -4,12 +4,13 @@ use std::sync::Arc;
 
 use a2a_types::Value;
 use rmcp::{
-  handler::server::tool::{Parameters, ToolRouter},
+  handler::server::{tool::ToolRouter, wrapper::Parameters},
   model::{
     CallToolResult, Content, GetPromptRequestParam, GetPromptResult, Implementation,
-    ListPromptsResult, PaginatedRequestParam, Prompt, PromptMessage, PromptMessageContent,
-    PromptMessageRole, ProtocolVersion, ServerCapabilities, ServerInfo,
+    ListPromptsResult, PaginatedRequestParam, PaginatedRequestParams, Prompt, PromptMessage,
+    PromptMessageContent, PromptMessageRole, ProtocolVersion, ServerCapabilities, ServerInfo,
   },
+  prompt, prompt_router,
   schemars::JsonSchema,
   service::RequestContext,
   tool, tool_handler, tool_router, RoleServer, ServerHandler,
@@ -78,49 +79,12 @@ impl A2AMcp {
   }
 }
 
-#[tool_handler]
-impl ServerHandler for A2AMcp {
-  fn get_info(&self) -> ServerInfo {
-    ServerInfo {
-      protocol_version: ProtocolVersion::V_2025_03_26,
-      capabilities: ServerCapabilities::builder()
-        .enable_tools()
-        .enable_prompts()
-        .build(),
-      server_info: Implementation::from_build_env(),
-      instructions: Some(
-        "This server provides `a2a_run` tools to run a javascript script.".to_string(),
-      ),
-    }
-  }
-
-  async fn list_prompts(
-    &self,
-    _request: Option<PaginatedRequestParam>,
-    _: RequestContext<RoleServer>,
-  ) -> Result<ListPromptsResult, rmcp::ErrorData> {
-    Ok(ListPromptsResult {
-      next_cursor: None,
-      prompts: vec![
-        Prompt::new("a2a", Some("Let llm know how to use a2a_run tool"), None),
-        Prompt::new(
-          "config",
-          Some("Convert the natural language description of the configuration to a JSON object"),
-          None,
-        ),
-      ],
-    })
-  }
-
-  async fn get_prompt(
-    &self,
-    GetPromptRequestParam { name, arguments: _ }: GetPromptRequestParam,
-    _: RequestContext<RoleServer>,
-  ) -> Result<GetPromptResult, rmcp::ErrorData> {
-    match name.as_str() {
-      "a2a" => {
-        let prompt = format!(
-          r#"You should write JavaScript code to meet user needs,
+#[prompt_router]
+impl A2AMcp {
+  #[prompt(name = "a2a", description = "Let llm know how to use a2a_run tool")]
+  async fn greeting(&self) -> Vec<PromptMessage> {
+    let prompt = format!(
+      r#"You should write JavaScript code to meet user needs,
 then call tool `a2a_run` to execute the script and process the results, 
 then reply the user based on the result of the script. 
 
@@ -130,17 +94,33 @@ please select and use the appropriate tool based on the user's input and the too
 Basic and mandatory coding standards are as follows
 
 {}"#,
-          default_system_prompt().to_string()
-        );
-        Ok(GetPromptResult {
-          description: None,
-          messages: vec![PromptMessage {
-            role: PromptMessageRole::User,
-            content: PromptMessageContent::text(prompt),
-          }],
-        })
-      }
-      _ => Err(rmcp::ErrorData::invalid_params("prompt not found", None)),
-    }
+      default_system_prompt().to_string()
+    );
+    vec![PromptMessage::new_text(PromptMessageRole::User, prompt)]
+  }
+
+  #[prompt(
+    name = "config",
+    description = "Convert the natural language description of the configuration to a JSON object"
+  )]
+  async fn config(&self) -> Vec<PromptMessage> {
+    vec![PromptMessage::new_text(
+      PromptMessageRole::User,
+      "Hello! How can you help me today?",
+    )]
+  }
+}
+
+#[tool_handler]
+impl ServerHandler for A2AMcp {
+  fn get_info(&self) -> ServerInfo {
+    ServerInfo::new(
+      ServerCapabilities::builder()
+        .enable_tools()
+        .enable_prompts()
+        .build(),
+    )
+    .with_protocol_version(ProtocolVersion::V_2025_06_18)
+    .with_server_info(Implementation::new("a2a", "0.1.19"))
   }
 }

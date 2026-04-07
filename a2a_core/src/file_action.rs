@@ -125,7 +125,7 @@ pub async fn do_action(action: FileAction) -> Result<FileActionResult> {
             "size": item.metadata().content_length(),
             "contentMd5": item.metadata().content_md5(),
             "eTag": item.metadata().etag(),
-            "lastModified": item.metadata().last_modified().map(|t| t.timestamp_micros()),
+            "lastModified": item.metadata().last_modified().map(|t| t.into_inner().as_millisecond()),
           })
         })
         .collect::<Vec<_>>();

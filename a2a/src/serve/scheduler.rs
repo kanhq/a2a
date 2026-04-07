@@ -2,6 +2,7 @@ use std::{
   collections::HashMap,
   fs,
   path::{Path, PathBuf},
+  str::FromStr,
 };
 
 use a2a_types::Value;
@@ -52,7 +53,7 @@ where
   let crons: Vec<String> = serde::Deserialize::deserialize(d)?;
   let crons: Vec<Cron> = crons
     .iter()
-    .filter_map(|c| Cron::new(&c).with_seconds_optional().parse().ok())
+    .filter_map(|c| Cron::from_str(c).ok())
     .collect();
   Ok(crons)
 }

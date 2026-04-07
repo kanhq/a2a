@@ -11,8 +11,7 @@ use axum::{
   routing::{get, post},
 };
 use rmcp::transport::{
-  sse_server::SseServerConfig, streamable_http_server::session::local::LocalSessionManager,
-  SseServer, StreamableHttpService,
+  streamable_http_server::session::local::LocalSessionManager, StreamableHttpService,
 };
 use scheduler::ScheduleAdminSender;
 use tokio_util::sync::CancellationToken;
@@ -52,15 +51,7 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
   .await??;
   let mcp_path = arg.mcp_path.as_ref().map_or("/mcp", |p| p.as_str());
 
-  let mcp_sse_config = SseServerConfig {
-    bind: arg.listen.parse()?,
-    sse_keep_alive: None,
-    sse_path: format!("{}/sse", mcp_path),
-    post_path: format!("{}/messages", mcp_path),
-    ct: ct.clone(),
-  };
-  show_runtime_info(arg, &mcp_sse_config);
-  let (mcp_sse_server, mcp_sse_router) = SseServer::new(mcp_sse_config);
+  show_runtime_info(arg);
 
   let state = Arc::new(AppState {
     conf: Arc::new(RwLock::new(conf)),
@@ -72,7 +63,6 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
 
   let state_for_mcp_sse = state.clone();
   let state_for_mcp_http = state.clone();
-  mcp_sse_server.with_service(move || A2AMcp::new(state_for_mcp_sse.clone()));
   let mcp_http_service = StreamableHttpService::new(
     move || Ok(A2AMcp::new(state_for_mcp_http.clone())),
     LocalSessionManager::default().into(),
@@ -102,7 +92,6 @@ pub(crate) async fn execute(arg: &Serve) -> Result<()> {
     .route(admin_path, post(admin::post_handler))
     .nest_service(mcp_path, mcp_http_service)
     .with_state(state)
-    .merge(mcp_sse_router)
     .layer(cors);
 
   let listener = tokio::net::TcpListener::bind(&arg.listen).await?;
@@ -152,7 +141,7 @@ async fn shutdown_signal(ct: CancellationToken) {
   ct.cancelled().await;
 }
 
-fn show_runtime_info(arg: &Serve, mcp_arg: &SseServerConfig) {
+fn show_runtime_info(arg: &Serve) {
   let workspace_dir = arg.root_path.display().to_string();
   info!(workspace_dir, "A2A starting server");
   let url = format!("http://{}", local_ip(arg));
@@ -168,7 +157,6 @@ fn show_runtime_info(arg: &Serve, mcp_arg: &SseServerConfig) {
       arg.mcp_path.as_deref().unwrap_or("/mcp"),
       "MCP StreamHTTP endpoint",
     ),
-    (mcp_arg.sse_path.as_ref(), "MCP SSE endpoint"),
     (admin_path, "Admin"),
   ];
 

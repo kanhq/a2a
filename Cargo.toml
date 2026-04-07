@@ -15,17 +15,17 @@ serde = { version = "1", features = ["derive"] }
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-util = "0.7"
-reqwest = { version = "0.12", features = ["stream", "json"] }
+reqwest = { version = "0.13", features = ["stream", "json"] }
 bytes = { version = "1", features = ["serde"] }
 tracing = "0.1"
 base64-simd = "0.8"
 hex-simd = "0.8"
 urlencoding = "2.1"
 serde_yml = "0.0.12"
-thiserror = "1"
+thiserror = "2"
 time = "0.3"
 futures = "0.3"
-rand = "0.9"
+rand = "0.10"
 glob = "0.3"
 encoding_rs = "0.8"
 
@@ -37,7 +37,7 @@ edition = "2021"
 
 [patch.crates-io]
 # imap-next = { git = "https://github.com/duesee/imap-next" }
-imap-client = { git = "https://github.com/elsejj/imap-client" }
+#imap-client = { git = "https://github.com/elsejj/imap-client" }
 
 
 [profile.release]

@@ -12,7 +12,6 @@ use email::{
   imap::ImapContextBuilder,
   message::peek::PeekMessages,
 };
-use mail_parser::MimeHeaders;
 use serde_json::json;
 use tracing::{debug, info, warn};
 
@@ -119,11 +118,11 @@ async fn on_read(account: &Value, folder: &str, last_id: u64) -> Result<Value> {
                 .map(|b| b.text_contents().unwrap_or(""))
                 .collect::<String>();
               let mut files = Vec::new();
-              for a in parsed.attachments() {
-                if let Some(filename) = a.attachment_name() {
+              for a in msg.attachments().iter().flatten() {
+                if let Some(filename) = a.filename.as_ref() {
                   let local_attachment_name = files_dir.join(filename);
                   debug!(user_email, %id, filename=?local_attachment_name, "email save attachment");
-                  if let Err(err) = std::fs::write(&local_attachment_name, a.contents()) {
+                  if let Err(err) = std::fs::write(&local_attachment_name, &a.body) {
                     warn!(user_email, id=%envelope.id, filename=?local_attachment_name, %err, "email save attachment");
                     continue;
                   } else {
